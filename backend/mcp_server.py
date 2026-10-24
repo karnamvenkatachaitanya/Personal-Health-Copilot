@@ -52,6 +52,9 @@ app = MCPServer("Personal Health Copilot")
 # Global active caller context configured at startup or per-request
 _ACTIVE_TOKEN: Optional[str] = os.getenv("MCP_API_KEY")
 
+# Hackathon unauthenticated demo mode flag (defaults to false for production security)
+DEMO_MODE: bool = os.getenv("DEMO_MODE", "false").lower() in ("true", "1", "yes")
+
 
 def set_active_token(token: Optional[str]) -> None:
     global _ACTIVE_TOKEN
@@ -67,7 +70,23 @@ def _token_given() -> bool:
 def get_current_context() -> Optional[MCPCallerContext]:
     global _ACTIVE_TOKEN
     token = _ACTIVE_TOKEN or os.getenv("MCP_API_KEY")
-    return authenticate_caller(token)
+    ctx = authenticate_caller(token)
+    if ctx:
+        return ctx
+
+    # Safe isolation for unauthenticated demo mode:
+    # If DEMO_MODE is active and no user token was provided, provide an isolated, read-only
+    # demo caller context that only accesses synthetic demo records without real patient data.
+    if DEMO_MODE and not _token_given():
+        from app.services.mcp_governance import ALL_MCP_TOOLS
+        return MCPCallerContext(
+            owner_id="demo_isolated_environment",
+            token_name="hackathon_demo_mode",
+            is_active=True,
+            enabled_tools=list(ALL_MCP_TOOLS) + ["get_synthetic_wellness_demo"],
+            allowed_patient_ids=[],
+        )
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -309,6 +328,52 @@ def find_specialist_doctors(specialty_or_condition: str, city: str = "Hyderabad"
     return result
 
 
+@app.tool()
+def get_synthetic_wellness_demo(patient_name: str = "Demo User") -> Dict[str, Any]:
+    """Retrieves synthetic health measurements and wellness trends for demonstration purposes.
+
+    All data returned by this tool is fictional, synthetic demonstration data for hackathon evaluation only.
+
+    Args:
+        patient_name: Name for the demonstration profile (default: 'Demo User').
+
+    Returns:
+        Sample health summary, synthetic heart-rate readings, and 7-day wellness trends.
+    """
+    return {
+        "status": "success",
+        "demo_mode": DEMO_MODE,
+        "classification": "FICTIONAL_DEMO_DATA",
+        "notice": "[FICTIONAL DEMO DATA - SYNTHETIC HEALTH MEASUREMENTS - FOR HACKATHON EVALUATION ONLY]",
+        "patient_name": patient_name,
+        "health_summary": {
+            "overall_status": "Healthy / Normal (Simulated)",
+            "resting_heart_rate_bpm": 72,
+            "blood_pressure_mmhg": "118/78",
+            "blood_oxygen_spo2_pct": 98,
+            "daily_activity_level": "Moderately Active",
+            "sleep_quality_score": 84,
+        },
+        "synthetic_heart_rate_measurements": [
+            {"time": "08:00 AM", "heart_rate_bpm": 68, "activity_context": "Resting / Morning Awakening"},
+            {"time": "10:30 AM", "heart_rate_bpm": 115, "activity_context": "Brisk Walk / Mild Cardio (Simulated)"},
+            {"time": "01:15 PM", "heart_rate_bpm": 74, "activity_context": "Post-Lunch Rest"},
+            {"time": "05:45 PM", "heart_rate_bpm": 92, "activity_context": "Evening Commute"},
+            {"time": "10:00 PM", "heart_rate_bpm": 65, "activity_context": "Pre-Sleep Resting"},
+        ],
+        "sample_wellness_trend": [
+            {"date": "2026-10-18", "avg_resting_hr_bpm": 74, "steps": 8420, "sleep_hours": 7.5, "status": "Normal"},
+            {"date": "2026-10-19", "avg_resting_hr_bpm": 73, "steps": 9150, "sleep_hours": 7.2, "status": "Normal"},
+            {"date": "2026-10-20", "avg_resting_hr_bpm": 71, "steps": 7800, "sleep_hours": 8.0, "status": "Optimal"},
+            {"date": "2026-10-21", "avg_resting_hr_bpm": 72, "steps": 10240, "sleep_hours": 7.1, "status": "Active"},
+            {"date": "2026-10-22", "avg_resting_hr_bpm": 70, "steps": 8900, "sleep_hours": 7.8, "status": "Optimal"},
+            {"date": "2026-10-23", "avg_resting_hr_bpm": 72, "steps": 9400, "sleep_hours": 7.4, "status": "Active"},
+            {"date": "2026-10-24", "avg_resting_hr_bpm": 71, "steps": 6200, "sleep_hours": 7.6, "status": "Normal (Today)"},
+        ],
+        "clinical_disclaimer": "These records are computer-generated synthetic demonstration data for hackathon evaluation. Not a real medical record.",
+    }
+
+
 # ---------------------------------------------------------------------------
 # MCP Prompts
 # ---------------------------------------------------------------------------
@@ -341,17 +406,21 @@ def medication_safety_audit(patient_name: str) -> str:
 
 def main():
     parser = argparse.ArgumentParser(description="Personal Health Copilot MCP Server")
+    parser.add_argument("--http", action="store_true", help="Run Streamable HTTP transport (default path: /mcp)")
     parser.add_argument("--sse", action="store_true", help="Run SSE transport instead of stdio")
-    parser.add_argument("--port", type=int, default=8001, help="Port for SSE transport (default: 8001)")
-    parser.add_argument("--host", type=str, default="127.0.0.1", help="Host for SSE transport")
+    parser.add_argument("--port", type=int, default=8001, help="Port for HTTP/SSE transport (default: 8001)")
+    parser.add_argument("--host", type=str, default="127.0.0.1", help="Host for HTTP/SSE transport")
     parser.add_argument("--api-key", type=str, default=None, help="Personal MCP API Key (overrides env MCP_API_KEY)")
     args = parser.parse_args()
 
     if args.api_key:
         set_active_token(args.api_key)
 
-    if args.sse:
-        logger.info(f"Starting Personal Health Copilot MCP Server on http://{args.host}:{args.port}/sse ...")
+    if args.http:
+        logger.info(f"Starting Personal Health Copilot MCP Server on Streamable HTTP http://{args.host}:{args.port}/mcp ...")
+        app.run(transport="streamable-http", host=args.host, port=args.port)
+    elif args.sse:
+        logger.info(f"Starting Personal Health Copilot MCP Server on SSE http://{args.host}:{args.port}/sse ...")
         app.run(transport="sse", host=args.host, port=args.port)
     else:
         logger.info("Starting Personal Health Copilot MCP Server on stdio transport...")
