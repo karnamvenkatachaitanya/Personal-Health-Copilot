@@ -11,7 +11,7 @@
 [![Next.js 15](https://img.shields.io/badge/Next.js_15-App_Router-000?style=flat-square&logo=next.js)](https://nextjs.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-Python_3.12-009688?style=flat-square&logo=fastapi)](https://fastapi.tiangolo.com)
 [![Gemini Flash](https://img.shields.io/badge/Gemini_Flash-Vision_OCR-4285F4?style=flat-square&logo=google)](https://deepmind.google/technologies/gemini/)
-[![Groq LPU](https://img.shields.io/badge/Groq_LPU-Qwen_+_Whisper-F55036?style=flat-square)](https://groq.com)
+[![Groq LPU](https://img.shields.io/badge/Groq_LPU-gpt--oss--120b_+_Whisper-F55036?style=flat-square)](https://groq.com)
 [![Supabase](https://img.shields.io/badge/Supabase-Postgres_+_RLS-3ECF8E?style=flat-square&logo=supabase)](https://supabase.com)
 
 ---
@@ -26,18 +26,28 @@
 
 ## 📸 Application Showcase
 
+Screenshots of the current build with the sample family (Load sample).
+
 <table>
 <tr>
-<td width="50%"><img src="docs/screenshots/02-overview.png" alt="Family Passbook Overview" /><br/><b>Family Passbook Overview</b> — Unified health timeline per family member</td>
-<td width="50%"><img src="docs/screenshots/03-record-detail.png" alt="Side-by-Side Record Detail" /><br/><b>Side-by-Side Verification</b> — Original document vs extracted data</td>
+<td width="50%"><img src="docs/screenshots/02-overview.png" alt="Overview: what needs attention and trends" /><br/><b>Problems first, then trends</b> — Low values against the printed range, and how each test is changing across reports</td>
+<td width="50%"><img src="docs/screenshots/03-record-detail.png" alt="Record detail with the value highlighted on the original page" /><br/><b>Every number is checkable</b> — Hover a value and it lights up where it is printed on the original page</td>
 </tr>
 <tr>
-<td width="50%"><img src="docs/screenshots/05-ask.png" alt="Grounded Copilot" /><br/><b>Grounded AI Copilot</b> — Evidence-cited answers from patient records</td>
-<td width="50%"><img src="docs/screenshots/06-visit-summary.png" alt="Doctor Visit Summary" /><br/><b>Doctor Visit Summary</b> — Printable clinical handoff sheet</td>
+<td width="50%"><img src="docs/screenshots/09-care-plan.png" alt="Care plan set up by the copilot" /><br/><b>Care-plan agent</b> — Reminders set up from the prescription; the family keeps, edits or removes each one</td>
+<td width="50%"><img src="docs/screenshots/10-overdue.png" alt="Overdue follow-up and tests" /><br/><b>Overdue visits and tests</b> — Quotes the doctor's own words and drafts questions for the next visit</td>
 </tr>
 <tr>
-<td width="50%"><img src="docs/screenshots/04-timeline.png" alt="Health Timeline" /><br/><b>Health Timeline</b> — Chronological view with range indicators</td>
-<td width="50%"><img src="docs/screenshots/07-dark.png" alt="Dark Mode" /><br/><b>Dark Mode & Accessibility</b> — High contrast, elder-friendly design</td>
+<td width="50%"><img src="docs/screenshots/05-ask.png" alt="Copilot answering in Telugu with sources" /><br/><b>Answers in Telugu, Hindi or English</b> — Grounded in the person's records, with the source reports cited</td>
+<td width="50%"><img src="docs/screenshots/11-health-only.png" alt="Copilot declining a request for code" /><br/><b>Health questions only</b> — Requests for code or other topics are declined before any model runs</td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/screenshots/06-visit-summary.png" alt="Doctor visit summary" /><br/><b>Doctor Visit Summary</b> — One page to take to the doctor, with an emergency QR</td>
+<td width="50%"><img src="docs/screenshots/12-ai-access.png" alt="ChatGPT and AI app access settings" /><br/><b>ChatGPT, Claude & Cursor access (MCP)</b> — Personal key per family, kill switch, per-tool and per-person controls, access log</td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/screenshots/07-dark.png" alt="Dark mode" /><br/><b>Dark Mode</b> — High contrast, elder-friendly design</td>
+<td width="50%"><img src="docs/screenshots/01-sign-in.png" alt="Sign in" /><br/><b>Sign in</b> — Own account, or the demo family in one click</td>
 </tr>
 </table>
 
@@ -55,7 +65,7 @@
 | [Data Model & Security](#-data-model--security) | PostgreSQL RLS & patient isolation |
 | [Local Setup](#-local-setup) | Get running in 5 minutes |
 | [Live Demo Script](#-live-demo-script) | 5-minute walkthrough for judges |
-| [Clinical Safety](#-clinical-safety) | Five layers of medical guardrails |
+| [Clinical Safety](#-clinical-safety) | Six layers of medical guardrails |
 | [Architecture & Features](#-clinical-architecture--feature-capabilities) | Point-by-point clinical architecture mapping |
 
 ---
@@ -238,10 +248,11 @@ flowchart LR
 |---|---|---|
 | **Medical vision OCR** | `gemini-3.5-flash` → `gemini-3.7-flash` → `flash-lite` → `gemini-3.8-flash` | ≈ 15 s per document ([results](backend/eval/results.md)) |
 | **PDF text fallback** | `pypdf` text layer → Groq `qwen3.8-27b` | not benchmarked |
-| **Copilot grounded Q&A** | Groq `gpt-oss-120b` → Groq `qwen3.8-27b` | not benchmarked |
+| **Copilot grounded Q&A** | Groq `gpt-oss-120b` → Groq `qwen3.8-27b` → Gemini | 24/24 checks ([results](backend/eval/copilot_results.md)) |
 | **Voice to text** | Groq `whisper-large-v3-turbo` | not benchmarked |
 | **Lab trends, FHIR, flags** | Deterministic Python, no model | instant |
 | **Emergency screening** | Deterministic regex, before any model | instant |
+| **Health-only scope** | Deterministic screen before the model, prompt rule, and an output check that never shows code | instant |
 
 ### Key AI Differentiators
 
@@ -302,7 +313,13 @@ Speak questions in English, Hindi, or Telugu. Groq Whisper LPU transcribes speec
 - **M2**: Health Information Provider (HIP) linking and automatic discovery of clinical records across hospitals.
 - **M3**: Consent management framework and secure FHIR R4 electronic health record transfers.
 
-### 10. Isolated Sandbox Demo Mode (`DEMO_MODE=true`)
+### 10. Care-Plan Agent
+- Reads each prescription and lab report and sets up **dose reminders**, **follow-up visits** and **repeat tests** on its own, with times taken from the prescription ("empty stomach", "after lunch") and an end date from the course length.
+- **Overdue** visits and tests are flagged with the doctor's own words; questions for the next visit are drafted.
+- Deterministic and idempotent: run it twice and you get the same plan; anything the family removed stays removed. The family keeps, edits or removes every item.
+- **Add to phone calendar** (.ics) so the phone rings at each dose time even when the app is closed.
+
+### 11. Isolated Sandbox Demo Mode (`DEMO_MODE=true`)
 - Unauthenticated sandbox for fast demonstration and evaluation inside ChatGPT and MCP clients.
 - Safely isolated to computer-generated synthetic data with zero exposure of real patient PHI, credentials, or destructive database writes.
 
@@ -454,6 +471,17 @@ Open `http://localhost:3000` in your browser.
 
 | Step | Action | What to Highlight |
 |---|---|---|
+| **1. Sign In** | Press **Use the demo family** → Sign in → **Load sample**. Select **Lakshmi Devi** (44). | "Haemoglobin is low" first; trends show haemoglobin improving, thyroid and vitamin D back in range. |
+| **2. Source check** | Timeline → the 14 Aug lab report → hover **Haemoglobin**. | The value lights up where it is printed on the original page. Flags come from the printed range, not the model. |
+| **3. Care plan** | **Care plan** tab. | The copilot set up the reminders from the prescription; keep, edit or remove each one. |
+| **4. Overdue** | Select **Venkata Rao K.** → Care plan. | Follow-up and FBS/HbA1c **overdue since 17 Aug 2026**, quoting the doctor; questions for the next visit drafted. |
+| **5. Language & voice** | Switch to **తెలుగు** → Ask → mic → ask about tonight's medicines. | Answer in Telugu, read aloud, with the source reports cited. |
+| **6. Health only** | In Ask, type *"give me a python code for fibonacci series"*. | Declined in one line; no model is called. |
+| **7. Non-medical rejection** | Upload `live-demo_not_a_medical_document.png`. | Gatekeeper rejects with an honest reason. Nothing saved. |
+| **8. Phone calendar** | Care plan → **Add to phone calendar**. | .ics with alarms at each dose time until the course ends. |
+| **9. Visit summary & FHIR** | **Visit summary**, then **Export ABDM record**. | One-page handoff sheet; FHIR R4 bundle in the NRCES profiles. |
+
+---|---|---|
 | **1. Sign In** | Log in with the demo caregiver account. Select **Lakshmi Devi** (Elderly Mother, 64 yrs). | Family passbook sidebar, health timeline, 3 abnormal lab markers with range bars. |
 | **2. Language Switch** | Switch the UI from **English** → **తెలుగు (Telugu)** or **हिन्दी (Hindi)**. | All clinical summaries, dosage instructions, and explanations adapt in real-time. |
 | **3. Document Inspection** | Open Lakshmi's **Lipid Profile Lab Report**. | Side-by-side: original on left, extracted data on right. `Serum Cholesterol 240 mg/dL (Range: 125-200)` flagged HIGH by math, not AI guesswork. |
@@ -468,7 +496,7 @@ Open `http://localhost:3000` in your browser.
 
 ## 🛡 Clinical Safety
 
-Health Copilot enforces **five distinct layers** of clinical safety — most executing before any AI model is called:
+Health Copilot enforces **six distinct layers** of clinical safety — most executing before any AI model is called:
 
 ```mermaid
 flowchart TD
@@ -480,9 +508,10 @@ flowchart TD
         L3["Layer 3: Relevance Gatekeeper<br/><i>Rejects non-medical uploads</i><br/>→ 422 NotMedicalDocument"]
         L4["Layer 4: Family Record Isolation<br/><i>Name cross-validation</i><br/>→ Mismatch alert + one-click move"]
         L5["Layer 5: Non-Diagnostic Disclaimers<br/><i>Injected in EN / HI / TE</i><br/>→ Every screen, every language"]
+        L6["Layer 6: Health-Only Scope<br/><i>Pre-model screen + output check</i><br/>→ No code, no off-topic answers"]
     end
 
-    L1 --> L2 --> L3 --> L4 --> L5 --> Safe["✅ Safe Response"]
+    L1 --> L2 --> L3 --> L4 --> L5 --> L6 --> Safe["✅ Safe Response"]
     L1 -- "🚨 Emergency" --> Helpline["112 · 108 · Tele-MANAS"]
 ```
 
@@ -493,6 +522,7 @@ flowchart TD
 | **Relevance Gatekeeper** | Rejects non-medical images with honest explanation | Zero fabricated records from landscapes, invoices, menus |
 | **Record Isolation** | Tokenized name cross-check against profile | Prevents dangerous family record cross-contamination |
 | **Non-Diagnostic Policy** | Mandatory disclaimers rendered on every screen | Never diagnoses, never advises changing dosages |
+| **Health-Only Scope** | Rule-based screen for code requests before the model, a scope rule in the prompt, and an output check that replaces any answer containing code | The copilot is not a free general chatbot, in the app, over MCP or in ChatGPT Actions; covered by `tests/test_guardrails.py` and the copilot eval |
 
 ---
 
