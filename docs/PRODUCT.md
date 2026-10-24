@@ -18,7 +18,7 @@
 **Indian family caregivers** — typically the adult son or daughter who keeps the paper prescriptions, lab reports, and discharge summaries for parents and themselves, and has to make sense of them between doctor visits.
 
 ### Secondary Users
-**Hackathon judges** at Altrix Labs, scoring across AI accuracy, architecture, UX, healthcare safety, and live demo quality.
+**Clinicians and healthcare providers** seeking a clear, verified, chronological summary of past visits, medications, and lab trends.
 
 ---
 
@@ -42,7 +42,7 @@ Every extracted fact stays **traceable to the original document** (shown side-by
 |---|---|
 | **Input Sources** | Paper documents photographed on a phone, printed lab PDFs, bilingual Hindi/English prescriptions, handwritten Rx |
 | **Usage Environment** | Used at home, often on mobile, sometimes read aloud to elderly parents |
-| **Demo Environment** | Runs on a laptop for judges during live hackathon evaluation |
+| **Demo Environment** | Accessible via web and cloud deployment for evaluation and clinic walkthroughs |
 
 ---
 
@@ -94,6 +94,6 @@ Designed for older readers and low-literacy users:
 
 <div align="center">
 
-*Personal Health Copilot · Altrix Labs Hackathon 2026*
+*Personal Health Copilot · Clinical Health Platform*
 
 </div>

@@ -41,7 +41,7 @@ This is the fastest method and supports all 8 real-time clinical tools.
    https://mycopilot.qd.je/mcp
    ```
 3. **Authentication:**
-   - **For Hackathon Demo Mode:**
+   - **For Isolated Demo Mode:**
      - When ChatGPT prompts *"Couldn't discover OAuth settings"*, scroll down to the **Authentication** section.
      - Select **`No authentication`** (collapses all OAuth fields).
      - Check: **`☑ I understand and want to continue`**.

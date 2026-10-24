@@ -34,7 +34,7 @@ In multi-tenant healthcare systems, an external AI model cannot read medical rec
    - **Tool-Level Toggles:** Turn off specific clinical tools (e.g. allow reading lab reports, but disable AI clinical reasoning).
    - **Family Member Privacy Filter:** Selectively hide specific family members from being exposed to external LLMs.
    - **Live Audit Trail:** View every tool call made by ChatGPT, Claude, or Cursor with timestamps, queried patient names, and execution status.
-4. **Hackathon Demo Mode (`DEMO_MODE=true`):**
+4. **Isolated Sandbox Demo Mode (`DEMO_MODE=true`):**
    - For temporary demonstrations without authentication, an isolated environment (`demo_isolated_environment`) provides synthetic demonstration data without exposing real patient records.
 
 ---
@@ -49,7 +49,7 @@ In multi-tenant healthcare systems, an external AI model cannot read medical rec
    https://mycopilot.qd.je/mcp
    ```
 4. **Authentication:**
-   - **For Hackathon Demo Mode:**
+   - **For Isolated Demo Mode:**
      - When ChatGPT prompts *"Couldn't discover OAuth settings"*, scroll down to the **Authentication** section.
      - Switch from **OAuth** to **`No authentication`**.
      - Check the box: **`☑ I understand and want to continue`**.

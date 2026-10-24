@@ -3,7 +3,7 @@
 Profiles follow the NRCES (ndhm) implementation guide:
 PrescriptionRecord, DiagnosticReportRecord and DischargeSummaryRecord, each a
 Composition-first document bundle. The Patient carries the ABHA number and address
-as identifiers. This is a structural mock for the hackathon: it is not submitted
+as identifiers. This is a structural mock for testing and demonstration: it is not submitted
 to an ABDM gateway and codes use text where no verified SNOMED/LOINC code exists.
 """
 import uuid

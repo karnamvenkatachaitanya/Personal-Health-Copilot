@@ -63,7 +63,7 @@ supabase projects api-keys --project-ref <project-ref> --reveal
 
 ---
 
-## 2. Option A: Vercel + Render *(Recommended for Hackathon)*
+## 2. Option A: Vercel + Render *(Recommended for Quick Managed Setup)*
 
 ### Backend on Render
 
@@ -257,6 +257,6 @@ The service key (`SUPABASE_KEY`) is only ever set on the backend host. The brows
 
 <div align="center">
 
-*Personal Health Copilot · Deployment Guide · Altrix Labs Hackathon 2026*
+*Personal Health Copilot · Cloud Deployment Guide*
 
 </div>

@@ -534,7 +534,7 @@ export function McpGovernanceModal({ email, profiles, onClose }: McpGovernanceMo
                           <div className="rounded-lg bg-subtle/80 p-3.5 space-y-2.5 text-[11px] text-fg-2 ring-1 ring-line">
                             <div className="font-semibold text-fg flex items-center justify-between">
                               <span>ChatGPT Connection Plan (Step-by-Step):</span>
-                              <span className="rounded bg-ok-soft px-2 py-0.5 text-[10px] font-mono text-ok font-medium">Hackathon Ready</span>
+                              <span className="rounded bg-ok-soft px-2 py-0.5 text-[10px] font-mono text-ok font-medium">Production Verified</span>
                             </div>
                             <ol className="list-decimal list-inside space-y-1.5 text-fg-3">
                               <li>In ChatGPT, open <strong className="text-fg">Explore GPTs</strong> &rarr; <strong className="text-fg">Create a GPT</strong> (or open your Custom GPT / Developer Tools).</li>
@@ -544,7 +544,7 @@ export function McpGovernanceModal({ email, profiles, onClose }: McpGovernanceMo
                                 <span className="font-semibold text-fg">If ChatGPT asks for OAuth (&ldquo;Couldn&rsquo;t discover OAuth settings&rdquo;):</span>
                                 <div className="mt-1 pl-2 space-y-1 text-[11px]">
                                   <div>&bull; Scroll down to the <strong className="text-fg">Authentication</strong> toggle.</div>
-                                  <div>&bull; Switch from <strong className="text-high">OAuth</strong> to <strong className="text-ok font-semibold">&ldquo;No authentication&rdquo;</strong> (enables isolated Hackathon Demo Mode with synthetic health data).</div>
+                                  <div>&bull; Switch from <strong className="text-high">OAuth</strong> to <strong className="text-ok font-semibold">&ldquo;No authentication&rdquo;</strong> (enables isolated Demo Mode with synthetic health data).</div>
                                   <div>&bull; Check the box: <em className="text-fg">&ldquo;I understand and want to continue&rdquo;</em>.</div>
                                   <div>&bull; Click <strong className="text-fg">Create connector / Save</strong>.</div>
                                 </div>

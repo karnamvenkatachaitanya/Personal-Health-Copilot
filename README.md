@@ -5,7 +5,7 @@
 ### Intelligent Family Health Passbook & Clinical Intelligence Engine
 
 [![Live Demo](https://img.shields.io/badge/🌐_Live_Demo-mycopilot.qd.je-00C853?style=for-the-badge)](https://mycopilot.qd.je)
-[![Hackathon](https://img.shields.io/badge/Altrix_Labs-AI_Health_Copilot_Challenge-7C3AED?style=for-the-badge)](https://altrixlabs.com)
+[![Production Verified](https://img.shields.io/badge/Production-Verified_Platform-7C3AED?style=for-the-badge)](https://mycopilot.qd.je)
 [![ABDM FHIR R4](https://img.shields.io/badge/ABDM-NRCES_FHIR_R4_Compliant-FF6F00?style=for-the-badge)](https://nrces.in)
 
 [![Next.js 15](https://img.shields.io/badge/Next.js_15-App_Router-000?style=flat-square&logo=next.js)](https://nextjs.org)
@@ -56,7 +56,7 @@
 | [Local Setup](#-local-setup) | Get running in 5 minutes |
 | [Live Demo Script](#-live-demo-script) | 5-minute walkthrough for judges |
 | [Clinical Safety](#-clinical-safety) | Five layers of medical guardrails |
-| [Hackathon Scoring](#-hackathon-scoring-alignment) | Point-by-point evaluation mapping |
+| [Architecture & Features](#-clinical-architecture--feature-capabilities) | Point-by-point clinical architecture mapping |
 
 ---
 
@@ -302,8 +302,8 @@ Speak questions in English, Hindi, or Telugu. Groq Whisper LPU transcribes speec
 - **M2**: Health Information Provider (HIP) linking and automatic discovery of clinical records across hospitals.
 - **M3**: Consent management framework and secure FHIR R4 electronic health record transfers.
 
-### 10. Hackathon Isolated Demo Mode (`DEMO_MODE=true`)
-- Unauthenticated sandbox for fast hackathon evaluation and testing inside ChatGPT.
+### 10. Isolated Sandbox Demo Mode (`DEMO_MODE=true`)
+- Unauthenticated sandbox for fast demonstration and evaluation inside ChatGPT and MCP clients.
 - Safely isolated to computer-generated synthetic data with zero exposure of real patient PHI, credentials, or destructive database writes.
 
 ---
@@ -450,7 +450,7 @@ Open `http://localhost:3000` in your browser.
 
 ## 🎬 Live Demo Script
 
-> **Duration**: 5 minutes · **Audience**: Hackathon judges
+> **Duration**: 5 minutes · **Audience**: Reviewers & Clinicians
 
 | Step | Action | What to Highlight |
 |---|---|---|
@@ -496,9 +496,9 @@ flowchart TD
 
 ---
 
-## 📊 Round 2: From Understanding Records to Guiding the Person
+## 📊 Clinical Architecture & Feature Capabilities
 
-How each part of the Altrix Labs Round 2 brief is met, and where a judge can see it working on the sample family (sign in with the demo account, press **Load sample**).
+How each clinical need is met, and where to see it working on the sample family (sign in with the demo account, press **Load sample**).
 
 | Brief | What the product does | Where to see it |
 |---|---|---|
@@ -550,8 +550,8 @@ All supplementary and in-depth guides are neatly organized inside the [`docs/`](
 
 <div align="center">
 
-**Built by Team Health Copilot for the Altrix Labs Hackathon 2026**
+**Personal Health Copilot · Intelligent Family Health Passbook & Clinical Platform**
 
-*Special Thanks: Altrix Labs Mentors · NRCES India · Groq · Google DeepMind*
+*Special Thanks: NRCES India · Groq · Google DeepMind*
 
 </div>

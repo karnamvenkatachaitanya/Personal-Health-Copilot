@@ -139,7 +139,7 @@ def detect_specialty(query: str, records: List[HealthRecord]) -> dict:
 
 def _fetch_real_hospitals_uncached(city: str, lat: Optional[float] = None, lon: Optional[float] = None, limit: int = 5) -> List[dict]:
     """Queries OpenStreetMap Nominatim in real-time for authentic hospitals."""
-    headers = {"User-Agent": "PersonalHealthCopilot/2.0 (health-hackathon)"}
+    headers = {"User-Agent": "PersonalHealthCopilot/2.0 (production-health-copilot)"}
     hospitals = []
     
     # Try Nominatim location search

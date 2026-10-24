@@ -56,7 +56,7 @@ _ACTIVE_TOKEN: Optional[str] = os.getenv("MCP_API_KEY")
 _REQUEST_TOKEN: ContextVar[Optional[str]] = ContextVar("_REQUEST_TOKEN", default=None)
 _SESSION_TOKENS: Dict[str, str] = {}
 
-# Hackathon unauthenticated demo mode flag (defaults to false for production security)
+# Sandbox unauthenticated demo mode flag (defaults to false for production security)
 DEMO_MODE: bool = os.getenv("DEMO_MODE", "false").lower() in ("true", "1", "yes")
 
 
@@ -98,7 +98,7 @@ def get_current_context() -> Optional[MCPCallerContext]:
         from app.services.mcp_governance import ALL_MCP_TOOLS
         return MCPCallerContext(
             owner_id="demo_isolated_environment",
-            token_name="hackathon_demo_mode",
+            token_name="sandbox_demo_mode",
             is_active=True,
             enabled_tools=list(ALL_MCP_TOOLS) + ["get_synthetic_wellness_demo"],
             allowed_patient_ids=[],
@@ -349,7 +349,7 @@ def find_specialist_doctors(specialty_or_condition: str, city: str = "Hyderabad"
 def get_synthetic_wellness_demo(patient_name: str = "Demo User") -> Dict[str, Any]:
     """Retrieves synthetic health measurements and wellness trends for demonstration purposes.
 
-    All data returned by this tool is fictional, synthetic demonstration data for hackathon evaluation only.
+    All data returned by this tool is fictional, synthetic demonstration data for testing and evaluation purposes.
 
     Args:
         patient_name: Name for the demonstration profile (default: 'Demo User').
@@ -361,7 +361,7 @@ def get_synthetic_wellness_demo(patient_name: str = "Demo User") -> Dict[str, An
         "status": "success",
         "demo_mode": DEMO_MODE,
         "classification": "FICTIONAL_DEMO_DATA",
-        "notice": "[FICTIONAL DEMO DATA - SYNTHETIC HEALTH MEASUREMENTS - FOR HACKATHON EVALUATION ONLY]",
+        "notice": "[FICTIONAL DEMO DATA - SYNTHETIC HEALTH MEASUREMENTS - FOR PREVIEW AND TESTING ONLY]",
         "patient_name": patient_name,
         "health_summary": {
             "overall_status": "Healthy / Normal (Simulated)",
@@ -387,7 +387,7 @@ def get_synthetic_wellness_demo(patient_name: str = "Demo User") -> Dict[str, An
             {"date": "2026-10-23", "avg_resting_hr_bpm": 72, "steps": 9400, "sleep_hours": 7.4, "status": "Active"},
             {"date": "2026-10-24", "avg_resting_hr_bpm": 71, "steps": 6200, "sleep_hours": 7.6, "status": "Normal (Today)"},
         ],
-        "clinical_disclaimer": "These records are computer-generated synthetic demonstration data for hackathon evaluation. Not a real medical record.",
+        "clinical_disclaimer": "These records are computer-generated synthetic demonstration data for preview and testing. Not a real medical record.",
     }
 
 

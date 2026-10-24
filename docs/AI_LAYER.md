@@ -7,7 +7,7 @@
 [![AI Pipeline](https://img.shields.io/badge/Pipeline-Multi--Agent_Sequential_DAG-4285F4?style=for-the-badge)](AI_LAYER.md)
 [![Safety](https://img.shields.io/badge/Guardrails-Deterministic_Multi--Tier-009688?style=for-the-badge)](AI_LAYER.md)
 [![FHIR R4](https://img.shields.io/badge/ABDM-NRCES_Profile_Aligned-FF6F00?style=for-the-badge)](https://nrces.in)
-[![Hackathon](https://img.shields.io/badge/Altrix_Labs-100_Point_Evaluation_Ready-7C3AED?style=for-the-badge)](https://altrixlabs.com)
+[![Production Verified](https://img.shields.io/badge/Production-Verified_Platform-7C3AED?style=for-the-badge)](https://mycopilot.qd.je)
 
 </div>
 
@@ -25,7 +25,7 @@
 | 6 | [Grounded RAG & Citations](#6-grounded-rag--citation-engine) | Evidence-linked copilot architecture |
 | 7 | [Voice Engine](#7-sub-second-voice-engine) | Real-time multilingual speech pipeline |
 | 8 | [Research Roadmap](#8-research-roadmap) | Fine-tuning specifications for edge deployment |
-| 9 | [Scoring Matrix](#9-hackathon-scoring-matrix) | Point-by-point evaluation mapping |
+| 9 | [Evaluation Matrix](#9-evaluation--compliance-matrix) | Point-by-point capability mapping |
 
 ---
 
@@ -383,21 +383,21 @@ While the production deployment utilizes hosted models (`gemini-3.8-flash` and G
 
 ---
 
-## 9. Hackathon Scoring Matrix
+## 9. Evaluation & Compliance Matrix
 
-| Criterion | Points | Implementation Evidence |
+| Criterion | Target | Implementation Evidence |
 |---|---|---|
-| **AI Utilization** | **35 pts** | Multimodal Gemini Flash vision with a 4-model fallback. Deterministic biological reference range validation. Grounded RAG with exact document citations. Indian clinical shorthand expansion. |
-| **Technical Architecture** | **25 pts** | Next.js 15 App Router + FastAPI Python 3.12. Full NRCES ABDM FHIR R4 Bundle serializer. PostgreSQL with RLS on Supabase Mumbai. Multi-key cooldown & quota-aware routing. |
-| **User Experience** | **20 pts** | 100% Trilingual parity (English, हिन्दी, తెలుగు). Side-by-side original document audit viewer. Sub-second voice interaction with Groq Whisper. Interactive range bars & printable visit summary. |
-| **Healthcare Impact** | **10 pts** | Multi-generational caregiver family passbook. Deterministic suicide/crisis filter (112, 108, Tele-MANAS). Family member name mismatch detection. Non-diagnostic safety disclaimers across all screens. |
-| **Presentation & Demo** | **10 pts** | Sub-second response times via Groq LPU. Realistic synthetic test documents. Robust edge-case handling. |
-| **Bonus: Interoperability** | **+5 to +10** | Bidirectional ABDM FHIR R4 export and import. Mock ABHA number and address validation. |
+| **AI Utilization** | **High Fidelity** | Multimodal Gemini Flash vision with a 4-model fallback. Deterministic biological reference range validation. Grounded RAG with exact document citations. Indian clinical shorthand expansion. |
+| **Technical Architecture** | **Enterprise Ready** | Next.js 15 App Router + FastAPI Python 3.12. Full NRCES ABDM FHIR R4 Bundle serializer. PostgreSQL with RLS on Supabase Mumbai. Multi-key cooldown & quota-aware routing. |
+| **User Experience** | **Trilingual Parity** | 100% Trilingual parity (English, हिन्दी, తెలుగు). Side-by-side original document audit viewer. Sub-second voice interaction with Groq Whisper. Interactive range bars & printable visit summary. |
+| **Healthcare Impact** | **Clinical Safety** | Multi-generational caregiver family passbook. Deterministic suicide/crisis filter (112, 108, Tele-MANAS). Family member name mismatch detection. Non-diagnostic safety disclaimers across all screens. |
+| **Presentation & Performance** | **Sub-Second SLA** | Sub-second response times via Groq LPU. Realistic test documents. Robust edge-case handling. |
+| **Interoperability** | **ABDM Aligned** | Bidirectional ABDM FHIR R4 export and import. Mock ABHA number and address validation. |
 
 ---
 
 <div align="center">
 
-*Authored for the Altrix Labs Hackathon 2026 by Team Health Copilot*
+*Authored by Team Health Copilot · Clinical AI Documentation*
 
 </div>

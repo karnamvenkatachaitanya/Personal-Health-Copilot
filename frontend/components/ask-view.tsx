@@ -76,7 +76,7 @@ export function AskView({
   const [thinkingStep, setThinkingStep] = useState(0);
   const [micState, setMicState] = useState<"idle" | "listening" | "transcribing">("idle");
   const [liveTranscript, setLiveTranscript] = useState("");
-  const [autoSpeak, setAutoSpeak] = useState(true);
+  const [autoSpeak, setAutoSpeak] = useState(false);
   const [micErr, setMicErr] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [userLoc, setUserLoc] = useState<{ lat?: number; lon?: number; city?: string }>({ city: "Hyderabad" });
@@ -177,7 +177,7 @@ export function AskView({
         return ts.map((x) => (x.id === turnId ? { ...x, a } : x));
       });
 
-      if (autoSpeak || fromVoice) {
+      if (autoSpeak && fromVoice) {
         setTimeout(() => {
           speech.speak(a.answer, a.language);
         }, 150);

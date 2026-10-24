@@ -30,7 +30,7 @@ def test_mcp_initialization_and_tools():
             "params": {
                 "protocolVersion": "2024-11-05",
                 "capabilities": {},
-                "clientInfo": {"name": "hackathon-test", "version": "1.0"},
+                "clientInfo": {"name": "integration-test", "version": "1.0"},
             },
         }
         r_init = client.post("/mcp", json=init_payload, headers=headers)
