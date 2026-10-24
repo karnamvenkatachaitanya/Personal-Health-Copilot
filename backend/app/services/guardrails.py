@@ -2,6 +2,8 @@
 
 The crisis screen is deterministic and always runs before any model call, so
 self-harm or overdose questions get emergency numbers even if every AI service is down.
+The scope screen keeps the copilot to health: requests for code are declined before the
+model is called, and an answer that still contains code is replaced before it is shown.
 """
 import re
 from typing import Optional
@@ -28,6 +30,27 @@ EMERGENCY_REPLY = {
     "te": "ఇవి అత్యవసర లక్షణాలు కావచ్చు. దయచేసి అంబులెన్స్ కోసం 112 లేదా 108కి కాల్ చేయండి, లేదా వెంటనే దగ్గరలోని ఎమర్జెన్సీకి వెళ్ళండి.",
 }
 
+# Asking for code. Kept narrow so health questions ("kidney function", "ICD code",
+# "does iron react with calcium") are never caught; the prompt and the output check cover the rest.
+CODE_REQUEST = re.compile(
+    r"\b(python|javascript|typescript|java|c\+\+|c#|golang|php|html|css|sql|bash|powershell|kotlin)\b"
+    r"|\b(coding|programming)\b"
+    r"|\b(write|generate|debug|fix)\b.{0,30}\b(code|script|program|snippet|algorithm)\b",
+    re.I,
+)
+# Code in an answer: fenced blocks, or lines that start like source code. Case-sensitive on purpose.
+CODE_OUTPUT = re.compile(
+    r"```|^\s*(def \w+\(|class \w+[:(]|import \w|from [\w.]+ import |#include|public (static|class) |"
+    r"function \w*\s*\(|const \w+ = |console\.log|print\(|SELECT .+ FROM |<script|<\?php)",
+    re.M,
+)
+
+OFF_TOPIC_REPLY = {
+    "en": "I can only help with your family's health: reports, medicines, reminders and doctor visits. I can't help with writing code or other topics.",
+    "hi": "मैं केवल आपके परिवार के स्वास्थ्य में मदद कर सकता हूँ: रिपोर्ट, दवाइयाँ, रिमाइंडर और डॉक्टर की मुलाक़ात। कोड लिखने या दूसरे विषयों में मैं मदद नहीं कर सकता।",
+    "te": "నేను మీ కుటుంబ ఆరోగ్యం గురించి మాత్రమే సహాయం చేయగలను: రిపోర్టులు, మందులు, రిమైండర్లు, డాక్టర్ సందర్శనలు. కోడ్ రాయడం లేదా ఇతర విషయాల్లో సహాయం చేయలేను.",
+}
+
 DISCLAIMER = {
     "en": "Explains your documents in plain words. It is not a diagnosis. Please check with your doctor before changing any medicine.",
     "hi": "यह आपके दस्तावेज़ों को आसान शब्दों में समझाता है। यह निदान नहीं है। कोई भी दवा बदलने से पहले अपने डॉक्टर से पूछें।",
@@ -42,3 +65,15 @@ def crisis_reply(text: str, language: str) -> Optional[str]:
     if any(re.search(p, t) for p in EMERGENCY_SIGNS):
         return EMERGENCY_REPLY.get(language, EMERGENCY_REPLY["en"])
     return None
+
+
+def asks_for_code(text: str) -> bool:
+    return bool(CODE_REQUEST.search(text))
+
+
+def contains_code(answer: str) -> bool:
+    return bool(CODE_OUTPUT.search(answer))
+
+
+def off_topic_reply(language: str) -> str:
+    return OFF_TOPIC_REPLY.get(language, OFF_TOPIC_REPLY["en"])

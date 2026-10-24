@@ -1,6 +1,6 @@
 import pytest
 
-from app.services.guardrails import CRISIS_REPLY, DISCLAIMER, EMERGENCY_REPLY, crisis_reply
+from app.services.guardrails import CRISIS_REPLY, DISCLAIMER, EMERGENCY_REPLY, OFF_TOPIC_REPLY, asks_for_code, contains_code, crisis_reply
 
 
 @pytest.mark.parametrize("text,lang", [
@@ -30,3 +30,29 @@ def test_ordinary_questions_pass_through(text):
 
 def test_every_language_has_a_disclaimer():
     assert set(DISCLAIMER) == {"en", "hi", "te"}
+
+
+@pytest.mark.parametrize("text", [
+    "Write a Python function to reverse a string", "give me javascript for a todo app",
+    "can you debug this code for me", "help me with SQL joins", "teach me programming",
+])
+def test_code_requests_are_declined_before_the_model(text):
+    assert asks_for_code(text)
+
+
+@pytest.mark.parametrize("text", [
+    "What is her kidney function?", "Does iron react with calcium?", "Show me the ICD code for her diagnosis",
+    "Give her a diet program for diabetes", "When should she take the thyroid tablet?", "లక్ష్మి గారి TSH ఎలా ఉంది?",
+])
+def test_health_questions_are_not_mistaken_for_code(text):
+    assert not asks_for_code(text)
+
+
+def test_code_in_an_answer_is_detected():
+    assert contains_code("Sure:\n```python\nprint('hi')\n```")
+    assert contains_code("Here you go:\ndef reverse(s):\n    return s[::-1]")
+    assert not contains_code("| Date | Test | Value |\n|---|---|---|\n- [ ] Ask about HbA1c\n> ⚠️ **Note:** Select a time from the list.")
+
+
+def test_every_language_has_a_scope_reply():
+    assert set(OFF_TOPIC_REPLY) == {"en", "hi", "te"}
