@@ -48,3 +48,6 @@ backend/data/
 
 # Private team notes (never committed)
 .private/
+
+# Cursor local config & secrets
+.cursor/

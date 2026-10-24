@@ -278,6 +278,34 @@ One-click printable clinical handoff sheet: active medications, out-of-range lab
 ### 6. Sub-Second Multilingual Voice Assistant
 Speak questions in English, Hindi, or Telugu. Groq Whisper LPU transcribes speech in ~150ms.
 
+### 7. Remote Model Context Protocol (MCP) Server (`/mcp`)
+- Hosted on official **Streamable HTTP transport** at `https://mycopilot.qd.je/mcp`.
+- Connects directly to **ChatGPT**, **Cursor IDE**, and **Claude Desktop**.
+- Exposes 8 specialized clinical tools:
+  - `list_patient_profiles`: Lists family members in the account.
+  - `get_patient_summary`: Executive medical summary per patient.
+  - `get_prescribed_medications`: Active dosages, frequency, and food timings.
+  - `get_lab_reports`: Biomarker observations and HIGH/LOW abnormal flags.
+  - `check_drug_safety`: Real-time screening for drug-drug interactions and food contraindications.
+  - `ask_health_copilot`: Strict grounded answers with source citations.
+  - `find_specialist_doctors`: Verified local doctors and hospitals by condition.
+  - `get_synthetic_wellness_demo`: Computer-generated vital trends for safe demonstrations.
+
+### 8. In-App Data Governance & Zero-Trust Isolation
+- **Personal MCP Access Keys (PAT)**: Cryptographic tokens (`phc_mcp_...`) scoping external AI access strictly to the owner's family records.
+- **Emergency Kill-Switch**: One-click master toggle in the web portal to immediately refuse all external AI queries.
+- **Granular Tool & Patient Governance**: Selectively disable individual tools (e.g. allow reading lab reports but block reasoning) or hide specific family members.
+- **Live Audit Trail**: In-app audit log tracking every tool invoked by external AI agents with timestamps and queried subjects.
+
+### 9. ABHA Milestone 1, 2, 3 (ABDM Health Network)
+- **M1**: ABHA Number & ABHA Address generation with Aadhaar/Mobile OTP authentication.
+- **M2**: Health Information Provider (HIP) linking and automatic discovery of clinical records across hospitals.
+- **M3**: Consent management framework and secure FHIR R4 electronic health record transfers.
+
+### 10. Hackathon Isolated Demo Mode (`DEMO_MODE=true`)
+- Unauthenticated sandbox for fast hackathon evaluation and testing inside ChatGPT.
+- Safely isolated to computer-generated synthetic data with zero exposure of real patient PHI, credentials, or destructive database writes.
+
 ---
 
 ## 🗄 Data Model & Security
@@ -493,7 +521,8 @@ How each part of the Altrix Labs Round 2 brief is met, and where a judge can see
 | Copilot: grounding, honesty about gaps, safety, Hindi / Telugu, care-plan awareness | 20 / 20 checks | `cd backend && python -m eval.copilot_eval` → [results](backend/eval/copilot_results.md) |
 | Backend tests (care plan, trends, flags, FHIR, guardrails, auth on every route, rate limits, MCP access) | 153 passing | `cd backend && python -m pytest -q tests` |
 
----|---|
+| Evaluation Dimension | How Personal Health Copilot Delivers |
+|---|---|
 | **Problem understanding** | One passbook per family member; the name on every document is checked against the person it is filed under; explanations in English, Hindi and Telugu. |
 | **Solution quality** | Upload → plain-language summary → abnormal values → medicine schedule → timeline → lab trends across reports → grounded Q&A with citations → visit summary → FHIR export |
 | **Technical execution** | Deterministic flags, trends and FHIR around the models; 79 backend tests in CI (`backend/tests`, `.github/workflows/ci.yml`) |
@@ -507,11 +536,15 @@ How each part of the Altrix Labs Round 2 brief is met, and where a judge can see
 
 ## 📚 Documentation
 
+All supplementary and in-depth guides are neatly organized inside the [`docs/`](docs/) directory:
+
 | Document | Description |
 |---|---|
-| [AI_LAYER.md](AI_LAYER.md) | Deep-dive into AI pipeline architecture, prompt templates, safety guardrails, and benchmark results |
-| [PRODUCT.md](PRODUCT.md) | Product vision, principles, and design philosophy |
-| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Step-by-step deployment guide for Vercel, Render, and AWS |
+| [docs/AI_LAYER.md](docs/AI_LAYER.md) | Deep-dive into AI pipeline architecture, prompt templates, safety guardrails, and benchmark results |
+| [docs/MCP_SETUP_GUIDE.md](docs/MCP_SETUP_GUIDE.md) | Enterprise Model Context Protocol guide for ChatGPT, Cursor IDE, Claude Desktop, and In-App Data Governance |
+| [docs/CHATGPT_SETUP_GUIDE.md](docs/CHATGPT_SETUP_GUIDE.md) | Step-by-step guide to connect ChatGPT via Remote MCP Streamable HTTP or Custom GPT Actions |
+| [docs/PRODUCT.md](docs/PRODUCT.md) | Product vision, target users, and clinical design philosophy |
+| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Step-by-step production deployment guide for AWS EC2, Caddy reverse proxy, and Docker |
 
 ---
 
