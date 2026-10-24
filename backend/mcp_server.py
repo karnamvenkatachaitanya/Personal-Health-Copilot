@@ -54,6 +54,7 @@ from contextvars import ContextVar
 # Global active caller context configured at startup or per-request
 _ACTIVE_TOKEN: Optional[str] = os.getenv("MCP_API_KEY")
 _REQUEST_TOKEN: ContextVar[Optional[str]] = ContextVar("_REQUEST_TOKEN", default=None)
+_SESSION_TOKENS: Dict[str, str] = {}
 
 # Hackathon unauthenticated demo mode flag (defaults to false for production security)
 DEMO_MODE: bool = os.getenv("DEMO_MODE", "false").lower() in ("true", "1", "yes")
@@ -61,11 +62,20 @@ DEMO_MODE: bool = os.getenv("DEMO_MODE", "false").lower() in ("true", "1", "yes"
 
 def set_active_token(token: Optional[str]) -> None:
     global _ACTIVE_TOKEN
-    _ACTIVE_TOKEN = token
+    if token:
+        _ACTIVE_TOKEN = token
+
+
+def set_session_token(session_id: str, token: str) -> None:
+    if session_id and token:
+        _SESSION_TOKENS[session_id] = token
+        set_active_token(token)
 
 
 def set_request_token(token: Optional[str]) -> None:
     _REQUEST_TOKEN.set(token)
+    if token:
+        set_active_token(token)
 
 
 def _token_given() -> bool:

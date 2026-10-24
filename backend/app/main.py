@@ -58,8 +58,21 @@ async def extract_mcp_auth(request: Request, call_next):
     elif "api_key" in request.query_params:
         token = request.query_params.get("api_key", "").strip()
 
-    mcp_server.set_request_token(token)
-    return await call_next(request)
+    req_session_id = request.headers.get("mcp-session-id")
+
+    if token:
+        mcp_server.set_request_token(token)
+        mcp_server.set_active_token(token)
+        if req_session_id:
+            mcp_server.set_session_token(req_session_id, token)
+
+    response = await call_next(request)
+
+    resp_session_id = response.headers.get("mcp-session-id")
+    if resp_session_id and token:
+        mcp_server.set_session_token(resp_session_id, token)
+
+    return response
 
 @app.exception_handler(PostgrestAPIError)
 async def _postgrest_error(request: Request, exc: PostgrestAPIError):
