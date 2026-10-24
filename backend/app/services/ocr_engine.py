@@ -21,7 +21,7 @@ from app.services.regex_cleaner import compute_flag, normalize_frequency, split_
 
 logger = logging.getLogger(__name__)
 
-GEMINI_MODELS = ["gemini-3.5-flash", "gemini-3.7-flash", "gemini-flash-lite-latest", "gemini-3.8-flash"]
+GEMINI_MODELS = ["gemini-3.5-flash", "gemini-flash-lite-latest", "gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-3.7-flash"]
 # Models that answered "quota exceeded" or "503 high demand" are skipped until this time, so each upload does not pay for doomed retries.
 _COOLDOWN_UNTIL: Dict[str, float] = {}
 _KEY_COOLDOWN_UNTIL: Dict[str, float] = {}
@@ -29,7 +29,7 @@ GROQ_MODEL = "qwen/qwen3.8-27b"
 # Total seconds the vision chain may spend on one document. The browser waits 180 s for an
 # upload, so the chain must give up (or fall back to the PDF text path) well before that.
 VISION_BUDGET_S = 110
-PER_CALL_S = 45
+PER_CALL_S = 25
 
 
 class NotMedicalDocument(Exception):
