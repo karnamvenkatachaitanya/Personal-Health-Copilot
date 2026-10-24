@@ -49,6 +49,10 @@ Screenshots of the current build with the sample family (Load sample).
 <td width="50%"><img src="docs/screenshots/07-dark.png" alt="Dark mode" /><br/><b>Dark Mode</b> — High contrast, elder-friendly design</td>
 <td width="50%"><img src="docs/screenshots/01-sign-in.png" alt="Sign in" /><br/><b>Sign in</b> — Own account, or the demo family in one click</td>
 </tr>
+<tr>
+<td width="50%"><img src="docs/screenshots/04-timeline.png" alt="Health timeline" /><br/><b>Health Timeline</b> — Every record per person, newest first, with what was outside range</td>
+<td width="50%" align="center"><img src="docs/screenshots/08-mobile.png" alt="Mobile view" width="260" /><br/><b>Built for the phone</b> — The same app on a 390 px screen</td>
+</tr>
 </table>
 
 ---
