@@ -184,26 +184,26 @@ export function VisitSummary({ profile, records, onBack }: { profile: Profile; r
         <button onClick={handleBack} className="inline-flex items-center gap-1.5 rounded px-2 py-1 text-sm text-fg-3 hover:bg-hover hover:text-fg">
           <ArrowLeft size={14} /> {t.tabs.overview}
         </button>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           {speech.speaking ? (
-            <Button variant="danger" size="sm" icon={<Stop size={15} weight="bold" />} onClick={speech.stop}>
+            <Button variant="danger" size="sm" className="flex-1 sm:flex-none justify-center" icon={<Stop size={15} weight="bold" />} onClick={speech.stop}>
               {t.stopAudio}
             </Button>
           ) : (
-            <Button variant="secondary" size="sm" icon={<SpeakerHigh size={15} weight="bold" className="text-accent" />} onClick={handleListen}>
+            <Button variant="secondary" size="sm" className="flex-1 sm:flex-none justify-center" icon={<SpeakerHigh size={15} weight="bold" className="text-accent" />} onClick={handleListen}>
               {t.listenSummary} ({lang.toUpperCase()})
             </Button>
           )}
           <Button
             variant="secondary"
             size="sm"
-            className="hover:border-ok hover:text-ok"
+            className="flex-1 sm:flex-none justify-center hover:border-ok hover:text-ok"
             icon={<WhatsappLogo size={15} weight="fill" className="text-ok" />}
             onClick={handleWhatsAppShare}
           >
             {t.shareWhatsApp}
           </Button>
-          <Button variant="primary" size="sm" icon={<Printer size={15} />} onClick={() => window.print()}>
+          <Button variant="primary" size="sm" className="flex-1 sm:flex-none justify-center" icon={<Printer size={15} />} onClick={() => window.print()}>
             {t.printPage}
           </Button>
         </div>

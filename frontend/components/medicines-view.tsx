@@ -275,7 +275,7 @@ export function MedicinesView({
 
         <div className="flex flex-wrap items-center gap-2">
           {/* Form Filter Pills */}
-          <div className="flex items-center rounded-xl border border-line bg-surface p-1 shadow-xs text-xs font-medium">
+          <div className="flex items-center rounded-xl border border-line bg-surface p-1 shadow-xs text-xs font-medium overflow-x-auto max-w-full [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <button
               onClick={() => setFormFilter("all")}
               className={cx(

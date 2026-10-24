@@ -21,9 +21,9 @@ export function FamilyRow({ profiles, activeId, onSelect, onProfilesChanged }: {
     return () => { document.removeEventListener("mousedown", close); document.removeEventListener("keydown", esc); };
   }, []);
   return (
-    <div className="relative mx-auto max-w-[1240px] px-4 pt-5 sm:px-6 sm:pt-6" ref={ref}>
-      <nav aria-label={t.family} className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
-        <span className="eyebrow mr-2 shrink-0">{t.family}</span>
+    <div className="relative mx-auto max-w-[1240px] px-4 pt-4 sm:px-6 sm:pt-6" ref={ref}>
+      <nav aria-label={t.family} className="flex items-center gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <span className="eyebrow mr-1.5 shrink-0 text-fg-3">{t.family}</span>
         {!profiles ? [0, 1, 2].map((i) => <Skeleton key={i} className="h-8 w-24 rounded-full" />) : profiles.map((p) => {
           const on = p.id === activeId;
           return (

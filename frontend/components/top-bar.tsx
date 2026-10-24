@@ -28,15 +28,15 @@ export function TopBar({
   }, []);
 
   return (
-    <header className="sticky top-3 z-40 px-3 sm:px-6">
-      <div className="on-dark mx-auto flex h-14 max-w-[1240px] items-center gap-1.5 rounded-full bg-[#141414]/95 pl-5 pr-2 text-white sm:gap-3 shadow-[0_16px_40px_-16px_rgba(0,0,0,.55)] ring-1 ring-white/10 backdrop-blur-xl">
-        <span className="display text-[20px] font-bold">copilot<span className="text-high">.</span></span>
+    <header className="sticky top-3 z-40 px-2 sm:px-6">
+      <div className="on-dark mx-auto flex h-13 sm:h-14 max-w-[1240px] items-center gap-1.5 rounded-full bg-[#141414]/95 pl-3.5 pr-1.5 text-white sm:gap-3 sm:pl-5 sm:pr-2 shadow-[0_16px_40px_-16px_rgba(0,0,0,.55)] ring-1 ring-white/10 backdrop-blur-xl">
+        <span className="display text-[18px] sm:text-[20px] font-bold tracking-tight">copilot<span className="text-high">.</span></span>
         <div className="flex-1" />
 
         <div className="flex items-center rounded-full border border-line p-0.5" role="radiogroup" aria-label={t.language}>
           {LANGS.map((l) => (
             <button key={l.code} role="radio" aria-checked={lang === l.code} onClick={() => setLang(l.code)}
-              className={cx("h-10 min-w-10 rounded-full px-2 text-[15px] font-medium leading-none transition-colors sm:px-2.5", lang === l.code ? "bg-accent text-accent-fg" : "text-fg-3 hover:text-fg")}>{l.label}</button>
+              className={cx("h-8 sm:h-9 min-w-8 sm:min-w-9 rounded-full px-1.5 sm:px-2.5 text-[13px] sm:text-[14px] font-medium leading-none transition-colors", lang === l.code ? "bg-accent text-accent-fg" : "text-fg-3 hover:text-fg")}>{l.label}</button>
           ))}
         </div>
         {onOpenMcpGovernance && (

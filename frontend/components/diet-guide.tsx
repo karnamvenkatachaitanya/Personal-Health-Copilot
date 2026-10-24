@@ -322,59 +322,61 @@ export function DietGuide({
 
       {/* ─── Minimal Segmented Pill Navigation ─── */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4 print:hidden">
-        <div className="inline-flex rounded-full border border-line bg-subtle/50 p-1 text-sm">
-          <button
-            type="button"
-            onClick={() => setActiveTab("eat")}
-            className={`rounded-full px-3.5 py-1 text-xs sm:text-sm font-medium transition-all ${
-              activeTab === "eat"
-                ? "bg-surface text-fg shadow-card font-semibold"
-                : "text-fg-3 hover:text-fg"
-            }`}
-          >
-            {tabLabels.eat[lang]} <span className="num ml-1 text-xs text-fg-3">{plan.eat.length}</span>
-          </button>
+        <div className="w-full sm:w-auto overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pb-1">
+          <div className="inline-flex shrink-0 rounded-full border border-line bg-subtle/50 p-1 text-sm">
+            <button
+              type="button"
+              onClick={() => setActiveTab("eat")}
+              className={`rounded-full px-3.5 py-1 text-xs sm:text-sm font-medium transition-all ${
+                activeTab === "eat"
+                  ? "bg-surface text-fg shadow-card font-semibold"
+                  : "text-fg-3 hover:text-fg"
+              }`}
+            >
+              {tabLabels.eat[lang]} <span className="num ml-1 text-xs text-fg-3">{plan.eat.length}</span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab("avoid")}
-            className={`rounded-full px-3.5 py-1 text-xs sm:text-sm font-medium transition-all ${
-              activeTab === "avoid"
-                ? "bg-surface text-fg shadow-card font-semibold"
-                : "text-fg-3 hover:text-fg"
-            }`}
-          >
-            {tabLabels.avoid[lang]} <span className="num ml-1 text-xs text-fg-3">{plan.avoid.length}</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("avoid")}
+              className={`rounded-full px-3.5 py-1 text-xs sm:text-sm font-medium transition-all ${
+                activeTab === "avoid"
+                  ? "bg-surface text-fg shadow-card font-semibold"
+                  : "text-fg-3 hover:text-fg"
+              }`}
+            >
+              {tabLabels.avoid[lang]} <span className="num ml-1 text-xs text-fg-3">{plan.avoid.length}</span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab("schedule")}
-            className={`rounded-full px-3.5 py-1 text-xs sm:text-sm font-medium transition-all ${
-              activeTab === "schedule"
-                ? "bg-surface text-fg shadow-card font-semibold"
-                : "text-fg-3 hover:text-fg"
-            }`}
-          >
-            {tabLabels.schedule[lang]}
-          </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("schedule")}
+              className={`rounded-full px-3.5 py-1 text-xs sm:text-sm font-medium transition-all ${
+                activeTab === "schedule"
+                  ? "bg-surface text-fg shadow-card font-semibold"
+                  : "text-fg-3 hover:text-fg"
+              }`}
+            >
+              {tabLabels.schedule[lang]}
+            </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab("habits")}
-            className={`rounded-full px-3.5 py-1 text-xs sm:text-sm font-medium transition-all ${
-              activeTab === "habits"
-                ? "bg-surface text-fg shadow-card font-semibold"
-                : "text-fg-3 hover:text-fg"
-            }`}
-          >
-            {tabLabels.habits[lang]} <span className="num ml-1 text-xs text-fg-3">{plan.habits.length}</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("habits")}
+              className={`rounded-full px-3.5 py-1 text-xs sm:text-sm font-medium transition-all ${
+                activeTab === "habits"
+                  ? "bg-surface text-fg shadow-card font-semibold"
+                  : "text-fg-3 hover:text-fg"
+              }`}
+            >
+              {tabLabels.habits[lang]} <span className="num ml-1 text-xs text-fg-3">{plan.habits.length}</span>
+            </button>
+          </div>
         </div>
 
         {/* Sub-Category Chips (Tab 1 only) */}
         {activeTab === "eat" && (
-          <div className="flex items-center gap-1.5 overflow-x-auto text-xs">
+          <div className="flex w-full sm:w-auto items-center gap-1.5 overflow-x-auto text-xs pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {(["all", "superfood", "grain", "vegetable", "drink"] as const).map((cat) => {
               const count = cat === "all" ? plan.eat.length : plan.eat.filter((f) => f.category === cat).length;
               if (cat !== "all" && count === 0) return null;

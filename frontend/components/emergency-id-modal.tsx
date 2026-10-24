@@ -580,8 +580,8 @@ export function EmergencyIdModal({ profile, records, onClose }: EmergencyIdModal
 
                     {/* ICE Contacts Strip */}
                     <div className="mt-3.5 flex flex-wrap items-center gap-2.5 rounded-xl border border-line bg-canvas p-2 text-xs">
-                      <div className="flex flex-wrap items-center gap-1.5 font-bold text-fg">
-                        <AddressBook size={15} className="text-high" aria-hidden /> <span className="sr-only">Emergency contact</span>
+                      <div className="flex flex-1 flex-wrap items-center gap-1.5 font-bold text-fg">
+                        <AddressBook size={15} className="text-high shrink-0" aria-hidden /> <span className="sr-only">Emergency contact</span>
                         <input
                           type="text"
                           value={iceName}
@@ -591,7 +591,7 @@ export function EmergencyIdModal({ profile, records, onClose }: EmergencyIdModal
                           }}
                           placeholder={t.emContactName}
                           aria-label={t.emContactName}
-                          className="h-9 w-28 rounded-lg border border-line bg-surface px-2 text-xs font-semibold text-fg placeholder:font-normal placeholder:text-fg-3 focus:border-high focus:outline-none"
+                          className="h-9 flex-1 min-w-[100px] rounded-lg border border-line bg-surface px-2 text-xs font-semibold text-fg placeholder:font-normal placeholder:text-fg-3 focus:border-high focus:outline-none"
                         />
                         <input
                           type="tel"
@@ -602,13 +602,13 @@ export function EmergencyIdModal({ profile, records, onClose }: EmergencyIdModal
                           }}
                           placeholder={t.emContactPhone}
                           aria-label={t.emContactPhone}
-                          className="num h-9 w-36 rounded-lg border border-line bg-surface px-2 text-xs font-semibold text-high placeholder:font-normal placeholder:text-fg-3 focus:border-high focus:outline-none"
+                          className="num h-9 flex-1 min-w-[120px] rounded-lg border border-line bg-surface px-2 text-xs font-semibold text-high placeholder:font-normal placeholder:text-fg-3 focus:border-high focus:outline-none"
                         />
                       </div>
                       {icePhone && (
                         <a
                           href={`tel:${icePhone}`}
-                          className="ml-auto inline-flex h-9 items-center gap-1 rounded-lg bg-high px-3 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+                          className="sm:ml-auto inline-flex h-9 shrink-0 items-center gap-1 rounded-lg bg-high px-3 text-xs font-semibold text-white transition-opacity hover:opacity-90"
                         >
                           <PhoneCall size={13} weight="bold" /> {t.emCall}
                         </a>

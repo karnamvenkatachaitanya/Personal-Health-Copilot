@@ -30,7 +30,7 @@ export function PatientHeader({ profile, tab, onTab, recordCount, onUpload, onPr
             </p>
             <h1 className="display mt-1 truncate text-[28px] font-bold leading-tight sm:text-[36px]">{profile.name}</h1>
             {/* Visit summary and Emergency ID first: they serve the caregiver at the clinic. Record-keeping actions follow. */}
-            <div className="-mx-4 mt-3 flex items-center gap-2 overflow-x-auto px-4 pb-1 text-xs [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
+            <div className="-mx-4 mt-3 flex items-center gap-2 overflow-x-auto px-4 pb-1 text-xs [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
               {onVisit && <Button size="sm" className={chip} icon={<Printer size={14} aria-hidden />} onClick={onVisit}>{t.visitSummary}</Button>}
               {onEmergency && (
                 <button type="button" onClick={onEmergency}
@@ -63,7 +63,7 @@ export function PatientHeader({ profile, tab, onTab, recordCount, onUpload, onPr
         {cta}
       </div>
       {abhaOpen && <AbhaForm profile={profile} onDone={(p) => { if (p) onProfile(p); setAbhaOpen(false); }} />}
-      <nav className="mt-4 flex gap-1 overflow-x-auto border-b border-line sm:mt-5" aria-label="Sections">
+      <nav className="mt-4 flex gap-1 overflow-x-auto border-b border-line sm:mt-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Sections">
         {tabs.map((x) => (
           <button key={x} onClick={() => onTab(x)} aria-current={tab === x ? "page" : undefined}
             className={cx("relative -mb-px flex min-h-11 items-center whitespace-nowrap border-b-2 px-3 text-sm transition-colors sm:min-h-10 sm:text-[15px]",

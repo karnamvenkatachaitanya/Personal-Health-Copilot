@@ -6,7 +6,7 @@ export function getBaseUrl(): string {
     const custom = window.localStorage.getItem("copilot_backend_url");
     if (custom) return custom.replace(/\/+$/, "");
     if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
-      return (process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000/api/v1").replace(/\/+$/, "");
+      return "http://localhost:8000/api/v1";
     }
   }
   return (process.env.NEXT_PUBLIC_BACKEND_URL || "https://api.mycopilot.qd.je/api/v1").replace(/\/+$/, "");

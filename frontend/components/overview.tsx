@@ -798,7 +798,7 @@ export function Findings({ records }: { records: HealthRecord[] | null }) {
 
   return (
     <div>
-      <h2 className="display max-w-[26ch] text-[24px] font-semibold leading-[1.2] sm:text-[30px]">
+      <h2 className="display max-w-2xl text-[20px] sm:text-[26px] md:text-[30px] font-semibold leading-[1.25] break-words">
         {headline}
       </h2>
       <p className="mt-2 text-sm text-fg-3">

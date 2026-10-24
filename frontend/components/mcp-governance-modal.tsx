@@ -179,16 +179,22 @@ export function McpGovernanceModal({ email, profiles, onClose }: McpGovernanceMo
       setSaving(true);
       const res = await api.generateMcpKey("Claude Desktop / Cursor");
       setRawGeneratedKey(res.raw_key);
-      setPolicyData((prev: any) => ({
-        ...prev,
-        policy: {
-          ...prev.policy,
-          is_active: true,
-          has_generated_key: true,
-          masked_key: res.masked_key,
-          key_created_at: res.created_at,
-        },
-      }));
+      // Re-fetch the full policy so owner_id and all fields are populated
+      const freshPolicy = await api.mcpPolicy().catch(() => null);
+      if (freshPolicy) {
+        setPolicyData(freshPolicy);
+      } else {
+        setPolicyData((prev: any) => ({
+          ...(prev || {}),
+          policy: {
+            ...(prev?.policy || {}),
+            is_active: true,
+            has_generated_key: true,
+            masked_key: res.masked_key,
+            key_created_at: res.created_at,
+          },
+        }));
+      }
       toast("New Personal MCP Access Key generated!", "ok");
     } catch {
       toast("Failed to generate key.", "error");

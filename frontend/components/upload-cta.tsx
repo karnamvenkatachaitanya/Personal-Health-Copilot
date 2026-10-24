@@ -95,19 +95,19 @@ export function UploadCta({ name, onFile, compact }: { name: string; onFile: (f:
           type="button"
           id="scan-upload-btn"
           onClick={() => input.current?.click()}
-          className="inline-flex h-12 w-full items-center justify-center gap-2 whitespace-nowrap rounded-full bg-[#c4f542] px-5 sm:h-11 sm:w-auto text-[15px] font-semibold text-[#0d0d0f] transition-transform hover:scale-[1.02] active:scale-[.98]"
+          className="inline-flex h-12 w-full sm:w-auto items-center justify-center gap-2 whitespace-nowrap rounded-full bg-[#c4f542] px-5 sm:h-11 text-[15px] font-semibold text-[#0d0d0f] transition-transform hover:scale-[1.02] active:scale-[.98]"
         >
           <Camera size={18} weight="bold" /> {t.ctaButton}
         </button>
 
         {/* Load Sample button */}
-        <div className="sm:relative">
+        <div className="w-full sm:w-auto sm:relative">
           <button
             type="button"
             id="load-sample-btn"
             disabled={loadingSample}
             onClick={() => setSampleOpen((prev) => !prev)}
-            className="inline-flex h-12 items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 text-[14px] font-medium text-white transition-colors hover:bg-white/20 sm:h-11 active:scale-[.98] disabled:opacity-50"
+            className="inline-flex h-12 w-full sm:w-auto items-center justify-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 text-[14px] font-medium text-white transition-colors hover:bg-white/20 sm:h-11 active:scale-[.98] disabled:opacity-50"
           >
             {loadingSample ? (
               <Spinner className="h-4 w-4 text-[#c4f542]" />
@@ -128,7 +128,7 @@ export function UploadCta({ name, onFile, compact }: { name: string; onFile: (f:
               />
               <div
                 id="sample-menu-popover"
-                className="fixed inset-x-4 bottom-4 z-50 sm:absolute sm:inset-x-auto sm:bottom-auto sm:right-0 sm:top-full sm:mt-2.5 sm:w-[420px] sm:max-w-[calc(100vw-32px)] origin-top-right rounded-2xl border border-white/15 bg-[#14151a]/95 p-4 text-white shadow-[0_24px_64px_-12px_rgba(0,0,0,0.85),0_0_0_1px_rgba(255,255,255,0.08)] backdrop-blur-2xl animate-fade-up ring-1 ring-white/10"
+                className="fixed inset-x-3 bottom-3 z-50 max-h-[85vh] overflow-y-auto sm:absolute sm:inset-x-auto sm:bottom-auto sm:right-0 sm:top-full sm:mt-2.5 sm:w-[420px] sm:max-w-[calc(100vw-32px)] origin-top-right rounded-2xl border border-white/15 bg-[#14151a]/95 p-4 text-white shadow-[0_24px_64px_-12px_rgba(0,0,0,0.85),0_0_0_1px_rgba(255,255,255,0.08)] backdrop-blur-2xl animate-fade-up ring-1 ring-white/10"
               >
                 {/* Header */}
                 <div className="flex items-start justify-between border-b border-white/10 pb-3">
