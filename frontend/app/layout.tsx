@@ -9,7 +9,8 @@ const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono"
 const deva = Noto_Sans_Devanagari({ subsets: ["devanagari"], variable: "--font-deva", display: "swap" });
 const telu = Noto_Sans_Telugu({ subsets: ["telugu"], variable: "--font-telu", display: "swap" });
 
-const SITE = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3010";
+// Link previews (WhatsApp, Slack, X) fetch og.png from this absolute URL, so default to the live site.
+const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://mycopilot.qd.je";
 const DESCRIPTION = "Reads a family's prescriptions, lab reports and discharge summaries, explains them in English, Hindi and Telugu, and keeps one ABDM-ready record per person.";
 
 export const metadata: Metadata = {
