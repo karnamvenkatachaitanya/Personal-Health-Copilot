@@ -51,3 +51,6 @@ backend/data/
 
 # Cursor local config & secrets
 .cursor/
+
+# Qoder / Antigravity local config & secrets
+.agents/
