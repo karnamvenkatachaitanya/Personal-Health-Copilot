@@ -31,6 +31,7 @@ logging.basicConfig(
 logger = logging.getLogger("mcp_server")
 
 from mcp.server.mcpserver import MCPServer
+from mcp.server.mcpserver.context import Context
 from app.services.mcp_governance import (
     authenticate_caller,
     authorize_mcp_request,
@@ -69,25 +70,56 @@ def set_active_token(token: Optional[str]) -> None:
 def set_session_token(session_id: str, token: str) -> None:
     if session_id and token:
         _SESSION_TOKENS[session_id] = token
-        set_active_token(token)
 
 
 def set_request_token(token: Optional[str]) -> None:
     _REQUEST_TOKEN.set(token)
-    if token:
-        set_active_token(token)
+
+
+_RESOLVED_TOKEN: ContextVar[Optional[str]] = ContextVar("_RESOLVED_TOKEN", default=None)
+
+
+def _token_from_call(mcp_ctx: Optional[Context]) -> Optional[str]:
+    """The key for THIS call only.
+
+    Over HTTP the key must come from this request: Authorization / x-mcp-api-key header,
+    ?api_key=, or the key recorded when this request's own MCP session was opened. A key
+    from another caller is never used, because a process-wide "last token" would let an
+    anonymous caller act as the previous user. Over stdio (one local user) there is no
+    HTTP request, so the key configured at start-up (MCP_API_KEY or --token) applies.
+    """
+    request = None
+    if mcp_ctx is not None:
+        try:
+            request = getattr(mcp_ctx.request_context, "request", None)
+        except Exception:  # no request context (direct call)
+            request = None
+    if request is None:
+        if mcp_ctx is not None and getattr(mcp_ctx, "_request_context", None) is not None:
+            return None  # an HTTP-less request inside a live server: never borrow a token
+        return ((_ACTIVE_TOKEN or os.getenv("MCP_API_KEY") or "").strip()) or None
+    headers = getattr(request, "headers", {}) or {}
+    auth = headers.get("authorization", "") or ""
+    token = auth[7:].strip() if auth.lower().startswith("bearer ") else (headers.get("x-mcp-api-key") or "").strip()
+    if not token:
+        params = getattr(request, "query_params", None)
+        token = ((params.get("api_key") if params is not None else "") or "").strip()
+    if not token:
+        session_id = headers.get("mcp-session-id")
+        token = _SESSION_TOKENS.get(session_id, "") if session_id else ""
+    return token or None
 
 
 def _token_given() -> bool:
-    """A token was configured. If it does not resolve (wrong or revoked), every tool must refuse
-    rather than fall back to the anonymous sample-family view."""
-    return bool((_REQUEST_TOKEN.get() or _ACTIVE_TOKEN or os.getenv("MCP_API_KEY") or "").strip())
+    """A key came with this call. If it does not resolve (wrong or revoked), every tool must
+    refuse rather than fall back to the anonymous view."""
+    return bool(_RESOLVED_TOKEN.get())
 
 
-def get_current_context() -> Optional[MCPCallerContext]:
-    global _ACTIVE_TOKEN
-    token = _REQUEST_TOKEN.get() or _ACTIVE_TOKEN or os.getenv("MCP_API_KEY")
-    ctx = authenticate_caller(token)
+def get_current_context(mcp_ctx: Optional[Context] = None) -> Optional[MCPCallerContext]:
+    token = _token_from_call(mcp_ctx)
+    _RESOLVED_TOKEN.set(token)
+    ctx = authenticate_caller(token) if token else None
     if ctx:
         return ctx
 
@@ -111,15 +143,15 @@ def get_current_context() -> Optional[MCPCallerContext]:
 # ---------------------------------------------------------------------------
 
 @app.tool()
-def list_patient_profiles() -> List[Dict[str, Any]]:
+def list_patient_profiles(*, mcp_ctx: Context = None) -> List[Dict[str, Any]]:
     """Lists all family members and patients registered in the Personal Health Copilot.
 
     Returns demographic details including patient ID, full name, age, relationship,
     gender, and the number of clinical documents available.
     """
-    ctx = get_current_context()
+    ctx = get_current_context(mcp_ctx)
     allowed, reason = authorize_mcp_request(ctx, "list_patient_profiles")
-    if not allowed and (ctx is not None or _token_given()):
+    if not allowed:  # no key, wrong key, revoked key or disabled tool: refuse (DEMO_MODE gets its own context)
         return [{"error": reason, "patient_id": "none", "name": "Access Restricted"}]
 
     owner = ctx.owner_id if ctx else None
@@ -138,7 +170,7 @@ def list_patient_profiles() -> List[Dict[str, Any]]:
 
 
 @app.tool()
-def get_patient_summary(patient_name_or_id: str) -> Dict[str, Any]:
+def get_patient_summary(patient_name_or_id: str, *, mcp_ctx: Context = None) -> Dict[str, Any]:
     """Retrieves an executive medical summary for a patient.
 
     Args:
@@ -148,9 +180,9 @@ def get_patient_summary(patient_name_or_id: str) -> Dict[str, Any]:
         Demographics, diagnosed conditions, active medications count, recent lab results,
         and chronological list of doctor consultations / hospital visits.
     """
-    ctx = get_current_context()
+    ctx = get_current_context(mcp_ctx)
     allowed, reason = authorize_mcp_request(ctx, "get_patient_summary")
-    if not allowed and (ctx is not None or _token_given()):
+    if not allowed:  # no key, wrong key, revoked key or disabled tool: refuse (DEMO_MODE gets its own context)
         return {"error": reason}
 
     owner = ctx.owner_id if ctx else None
@@ -175,7 +207,7 @@ def get_patient_summary(patient_name_or_id: str) -> Dict[str, Any]:
 
 
 @app.tool()
-def get_prescribed_medications(patient_name_or_id: str) -> List[Dict[str, Any]]:
+def get_prescribed_medications(patient_name_or_id: str, *, mcp_ctx: Context = None) -> List[Dict[str, Any]]:
     """Retrieves all active prescribed medications, dosage schedules, food timing instructions, and duration for a patient.
 
     Args:
@@ -184,9 +216,9 @@ def get_prescribed_medications(patient_name_or_id: str) -> List[Dict[str, Any]]:
     Returns:
         List of medications with form, dosage, frequency, food timing, multilingual instructions, and prescribing doctor.
     """
-    ctx = get_current_context()
+    ctx = get_current_context(mcp_ctx)
     allowed, reason = authorize_mcp_request(ctx, "get_prescribed_medications")
-    if not allowed and (ctx is not None or _token_given()):
+    if not allowed:  # no key, wrong key, revoked key or disabled tool: refuse (DEMO_MODE gets its own context)
         return [{"error": reason}]
 
     owner = ctx.owner_id if ctx else None
@@ -211,7 +243,7 @@ def get_prescribed_medications(patient_name_or_id: str) -> List[Dict[str, Any]]:
 
 
 @app.tool()
-def get_lab_reports(patient_name_or_id: str, test_name_filter: Optional[str] = None) -> List[Dict[str, Any]]:
+def get_lab_reports(patient_name_or_id: str, test_name_filter: Optional[str] = None, *, mcp_ctx: Context = None) -> List[Dict[str, Any]]:
     """Retrieves laboratory test observations and diagnostics for a patient with normal ranges and abnormal flags.
 
     Args:
@@ -221,9 +253,9 @@ def get_lab_reports(patient_name_or_id: str, test_name_filter: Optional[str] = N
     Returns:
         List of lab test results with observed value, unit, reference range, status flag (HIGH, LOW, NORMAL), and date.
     """
-    ctx = get_current_context()
+    ctx = get_current_context(mcp_ctx)
     allowed, reason = authorize_mcp_request(ctx, "get_lab_reports")
-    if not allowed and (ctx is not None or _token_given()):
+    if not allowed:  # no key, wrong key, revoked key or disabled tool: refuse (DEMO_MODE gets its own context)
         return [{"error": reason, "test_name": "None"}]
 
     owner = ctx.owner_id if ctx else None
@@ -249,7 +281,7 @@ def get_lab_reports(patient_name_or_id: str, test_name_filter: Optional[str] = N
 
 
 @app.tool()
-def check_drug_safety(medications: List[str]) -> Dict[str, Any]:
+def check_drug_safety(medications: List[str], *, mcp_ctx: Context = None) -> Dict[str, Any]:
     """Analyzes a list of medications for dangerous drug-drug interactions, food contraindications, and timing rules.
 
     Args:
@@ -258,9 +290,9 @@ def check_drug_safety(medications: List[str]) -> Dict[str, Any]:
     Returns:
         Interaction warnings, food timing guidelines, duplication alerts, and critical safety precautions.
     """
-    ctx = get_current_context()
+    ctx = get_current_context(mcp_ctx)
     allowed, reason = authorize_mcp_request(ctx, "check_drug_safety")
-    if not allowed and (ctx is not None or _token_given()):
+    if not allowed:  # no key, wrong key, revoked key or disabled tool: refuse (DEMO_MODE gets its own context)
         return {"error": reason}
 
     result = check_drug_safety_service(medications)
@@ -276,7 +308,7 @@ def check_drug_safety(medications: List[str]) -> Dict[str, Any]:
 
 
 @app.tool()
-def ask_health_copilot(query: str, patient_name_or_id: Optional[str] = None, language: str = "en") -> Dict[str, Any]:
+def ask_health_copilot(query: str, patient_name_or_id: Optional[str] = None, language: str = "en", *, mcp_ctx: Context = None) -> Dict[str, Any]:
     """Answers patient clinical questions grounded strictly in their verified health records.
 
     Includes safety emergency screening (112 / 108 emergency detection) and document citations.
@@ -289,9 +321,9 @@ def ask_health_copilot(query: str, patient_name_or_id: Optional[str] = None, lan
     Returns:
         The grounded answer, verified citations, safety status, and follow-up clinical questions.
     """
-    ctx = get_current_context()
+    ctx = get_current_context(mcp_ctx)
     allowed, reason = authorize_mcp_request(ctx, "ask_health_copilot")
-    if not allowed and (ctx is not None or _token_given()):
+    if not allowed:  # no key, wrong key, revoked key or disabled tool: refuse (DEMO_MODE gets its own context)
         return {"answer": f"Policy restriction: {reason}", "safety": "blocked"}
 
     owner = ctx.owner_id if ctx else None
@@ -318,7 +350,7 @@ def ask_health_copilot(query: str, patient_name_or_id: Optional[str] = None, lan
 
 
 @app.tool()
-def find_specialist_doctors(specialty_or_condition: str, city: str = "Hyderabad") -> List[Dict[str, Any]]:
+def find_specialist_doctors(specialty_or_condition: str, city: str = "Hyderabad", *, mcp_ctx: Context = None) -> List[Dict[str, Any]]:
     """Finds top verified medical specialists and hospitals based on clinical diagnosis and city location.
 
     Args:
@@ -328,9 +360,9 @@ def find_specialist_doctors(specialty_or_condition: str, city: str = "Hyderabad"
     Returns:
         List of recommended specialists with hospital name, address, consultation reason, and booking contacts.
     """
-    ctx = get_current_context()
+    ctx = get_current_context(mcp_ctx)
     allowed, reason = authorize_mcp_request(ctx, "find_specialist_doctors")
-    if not allowed and (ctx is not None or _token_given()):
+    if not allowed:  # no key, wrong key, revoked key or disabled tool: refuse (DEMO_MODE gets its own context)
         return [{"error": reason, "doctor_name": "None"}]
 
     result = find_specialist_doctors_service(specialty_or_condition, city)
@@ -346,7 +378,7 @@ def find_specialist_doctors(specialty_or_condition: str, city: str = "Hyderabad"
 
 
 @app.tool()
-def get_synthetic_wellness_demo(patient_name: str = "Demo User") -> Dict[str, Any]:
+def get_synthetic_wellness_demo(patient_name: str = "Demo User", *, mcp_ctx: Context = None) -> Dict[str, Any]:
     """Retrieves synthetic health measurements and wellness trends for demonstration purposes.
 
     All data returned by this tool is fictional, synthetic demonstration data for testing and evaluation purposes.
