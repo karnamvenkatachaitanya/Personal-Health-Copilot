@@ -60,11 +60,10 @@ async def extract_mcp_auth(request: Request, call_next):
 
     req_session_id = request.headers.get("mcp-session-id")
 
-    if token:
-        mcp_server.set_request_token(token)
-        mcp_server.set_active_token(token)
-        if req_session_id:
-            mcp_server.set_session_token(req_session_id, token)
+    # Tools read the key from their own request (see mcp_server._token_from_call). Here we only
+    # remember which key opened which MCP session, so later calls in that session keep it.
+    if token and req_session_id:
+        mcp_server.set_session_token(req_session_id, token)
 
     response = await call_next(request)
 
