@@ -531,14 +531,25 @@ export function McpGovernanceModal({ email, profiles, onClose }: McpGovernanceMo
                             />
                           </div>
 
-                          <div className="rounded-lg bg-subtle/80 p-3 space-y-2 text-[11px] text-fg-2 ring-1 ring-line">
-                            <div className="font-semibold text-fg">How to connect inside ChatGPT:</div>
-                            <ol className="list-decimal list-inside space-y-1 text-fg-3">
-                              <li>In ChatGPT, open <strong className="text-fg">Explore GPTs</strong> &rarr; <strong className="text-fg">Create a GPT</strong> (or developer tools).</li>
-                              <li>Select <strong className="text-fg">Actions / Connected Apps</strong> &rarr; <strong className="text-fg">Add MCP Server</strong>.</li>
-                              <li>Paste the MCP URL: <code className="text-ok font-mono">{mcpServerUrl}</code></li>
-                              <li>Authentication: Select <strong className="text-fg">Bearer Token</strong> and paste your Personal Access Key above (or choose <strong className="text-fg">None</strong> for Hackathon Demo Mode).</li>
-                              <li>Prompt test: <em className="text-fg">&quot;Use get_synthetic_wellness_demo or check_drug_safety to review my health data.&quot;</em></li>
+                          <div className="rounded-lg bg-subtle/80 p-3.5 space-y-2.5 text-[11px] text-fg-2 ring-1 ring-line">
+                            <div className="font-semibold text-fg flex items-center justify-between">
+                              <span>ChatGPT Connection Plan (Step-by-Step):</span>
+                              <span className="rounded bg-ok-soft px-2 py-0.5 text-[10px] font-mono text-ok font-medium">Hackathon Ready</span>
+                            </div>
+                            <ol className="list-decimal list-inside space-y-1.5 text-fg-3">
+                              <li>In ChatGPT, open <strong className="text-fg">Explore GPTs</strong> &rarr; <strong className="text-fg">Create a GPT</strong> (or open your Custom GPT / Developer Tools).</li>
+                              <li>Under <strong className="text-fg">Connected Apps / Actions</strong>, choose <strong className="text-fg">Add MCP Server</strong>.</li>
+                              <li>Enter Server URL: <code className="text-ok font-mono select-all font-semibold">{mcpServerUrl}</code></li>
+                              <li className="bg-canvas/80 p-2 rounded-lg border border-line">
+                                <span className="font-semibold text-fg">If ChatGPT asks for OAuth (&ldquo;Couldn&rsquo;t discover OAuth settings&rdquo;):</span>
+                                <div className="mt-1 pl-2 space-y-1 text-[11px]">
+                                  <div>&bull; Scroll down to the <strong className="text-fg">Authentication</strong> toggle.</div>
+                                  <div>&bull; Switch from <strong className="text-high">OAuth</strong> to <strong className="text-ok font-semibold">&ldquo;No authentication&rdquo;</strong> (enables isolated Hackathon Demo Mode with synthetic health data).</div>
+                                  <div>&bull; Check the box: <em className="text-fg">&ldquo;I understand and want to continue&rdquo;</em>.</div>
+                                  <div>&bull; Click <strong className="text-fg">Create connector / Save</strong>.</div>
+                                </div>
+                              </li>
+                              <li>Test with prompt: <em className="text-fg">&quot;Use get_synthetic_wellness_demo to show my health trends&quot;</em> or <em className="text-fg">&quot;Check if Aspirin and Warfarin have drug interactions using check_drug_safety&quot;</em>.</li>
                             </ol>
                           </div>
                         </div>
