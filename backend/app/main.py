@@ -42,9 +42,24 @@ app.add_middleware(
     allow_origins=settings.allowed_origins,
     allow_credentials=False,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
-    allow_headers=["Authorization", "Content-Type"],
+    allow_headers=["Authorization", "Content-Type", "x-mcp-api-key"],
     max_age=600,
 )
+
+
+@app.middleware("http")
+async def extract_mcp_auth(request: Request, call_next):
+    auth_header = request.headers.get("authorization", "")
+    token = None
+    if auth_header.lower().startswith("bearer "):
+        token = auth_header[7:].strip()
+    elif "x-mcp-api-key" in request.headers:
+        token = request.headers.get("x-mcp-api-key", "").strip()
+    elif "api_key" in request.query_params:
+        token = request.query_params.get("api_key", "").strip()
+
+    mcp_server.set_request_token(token)
+    return await call_next(request)
 
 @app.exception_handler(PostgrestAPIError)
 async def _postgrest_error(request: Request, exc: PostgrestAPIError):

@@ -70,7 +70,9 @@ export function McpGovernanceModal({ email, profiles, onClose }: McpGovernanceMo
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [copiedKey, setCopiedKey] = useState(false);
   const [copiedConfig, setCopiedConfig] = useState(false);
+  const [copiedUrl, setCopiedUrl] = useState(false);
   const [activeTab, setActiveTab] = useState<"keys" | "tools" | "privacy" | "audit">("keys");
+  const [configTab, setConfigTab] = useState<"chatgpt" | "claude_remote" | "claude_local">("chatgpt");
 
   // Load policy and audit logs
   useEffect(() => {
@@ -228,12 +230,19 @@ export function McpGovernanceModal({ email, profiles, onClose }: McpGovernanceMo
     }
   }
 
-  const claudeConfigSnippet = JSON.stringify(
+  const activeKeyStr = rawGeneratedKey || policyData?.policy?.masked_key || "<YOUR_MCP_KEY>";
+  const mcpServerUrl = typeof window !== "undefined" && window.location.origin.includes("mycopilot.qd.je")
+    ? "https://mycopilot.qd.je/mcp"
+    : "https://mycopilot.qd.je/mcp";
+
+  const remoteMcpConfigSnippet = JSON.stringify(
     {
       mcpServers: {
         "personal-health-copilot": {
-          command: "python",
-          args: ["backend/mcp_server.py", "--api-key", rawGeneratedKey || policyData?.policy?.masked_key || "<YOUR_MCP_KEY>"],
+          url: mcpServerUrl,
+          headers: {
+            Authorization: `Bearer ${activeKeyStr}`,
+          },
         },
       },
     },
@@ -241,11 +250,27 @@ export function McpGovernanceModal({ email, profiles, onClose }: McpGovernanceMo
     2
   );
 
-  function copyText(text: string, type: "key" | "config") {
+  const claudeLocalSnippet = JSON.stringify(
+    {
+      mcpServers: {
+        "personal-health-copilot": {
+          command: "python",
+          args: ["backend/mcp_server.py", "--api-key", activeKeyStr],
+        },
+      },
+    },
+    null,
+    2
+  );
+
+  function copyText(text: string, type: "key" | "config" | "url") {
     navigator.clipboard.writeText(text);
     if (type === "key") {
       setCopiedKey(true);
       setTimeout(() => setCopiedKey(false), 2000);
+    } else if (type === "url") {
+      setCopiedUrl(true);
+      setTimeout(() => setCopiedUrl(false), 2000);
     } else {
       setCopiedConfig(true);
       setTimeout(() => setCopiedConfig(false), 2000);
@@ -450,21 +475,110 @@ export function McpGovernanceModal({ email, profiles, onClose }: McpGovernanceMo
                       </div>
                     )}
 
-                    {/* Pre-formatted Claude Configuration */}
-                    <div className="space-y-2 pt-2">
+                    {/* Multi-Platform Configuration Snippets */}
+                    <div className="space-y-3 pt-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-fg-2">Claude Desktop Configuration Snippet</span>
-                        <button
-                          onClick={() => copyText(claudeConfigSnippet, "config")}
-                          className="flex items-center gap-1 text-[11px] text-ok hover:underline"
-                        >
-                          {copiedConfig ? <Check size={12} /> : <Copy size={12} />}
-                          {copiedConfig ? "Copied" : "Copy Config JSON"}
-                        </button>
+                        <span className="text-xs font-semibold text-fg">AI Client Connection Setup</span>
+                        <div className="flex items-center gap-1 rounded-xl bg-subtle p-1 border border-line">
+                          <button
+                            onClick={() => setConfigTab("chatgpt")}
+                            className={cx(
+                              "rounded-lg px-2.5 py-1 text-xs font-medium transition-colors",
+                              configTab === "chatgpt" ? "bg-accent text-accent-fg shadow-sm font-semibold" : "text-fg-3 hover:text-fg"
+                            )}
+                          >
+                            ChatGPT
+                          </button>
+                          <button
+                            onClick={() => setConfigTab("claude_remote")}
+                            className={cx(
+                              "rounded-lg px-2.5 py-1 text-xs font-medium transition-colors",
+                              configTab === "claude_remote" ? "bg-accent text-accent-fg shadow-sm font-semibold" : "text-fg-3 hover:text-fg"
+                            )}
+                          >
+                            Claude / Cursor (Remote)
+                          </button>
+                          <button
+                            onClick={() => setConfigTab("claude_local")}
+                            className={cx(
+                              "rounded-lg px-2.5 py-1 text-xs font-medium transition-colors",
+                              configTab === "claude_local" ? "bg-accent text-accent-fg shadow-sm font-semibold" : "text-fg-3 hover:text-fg"
+                            )}
+                          >
+                            Local CLI
+                          </button>
+                        </div>
                       </div>
-                      <pre className="rounded-xl bg-subtle p-3 font-mono text-[11px] text-fg-2 overflow-x-auto ring-1 ring-line">
-                        {claudeConfigSnippet}
-                      </pre>
+
+                      {configTab === "chatgpt" && (
+                        <div className="rounded-xl border border-line bg-canvas/60 p-4 space-y-3">
+                          <div>
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-xs font-semibold text-fg">ChatGPT Remote MCP Endpoint</span>
+                              <button
+                                onClick={() => copyText(mcpServerUrl, "url")}
+                                className="flex items-center gap-1 text-[11px] text-ok hover:underline font-medium"
+                              >
+                                {copiedUrl ? <Check size={12} /> : <Copy size={12} />}
+                                {copiedUrl ? "Copied URL" : "Copy Endpoint"}
+                              </button>
+                            </div>
+                            <input
+                              type="text"
+                              readOnly
+                              value={mcpServerUrl}
+                              className="w-full rounded-lg bg-subtle px-3 py-1.5 font-mono text-xs text-ok ring-1 ring-line select-all"
+                            />
+                          </div>
+
+                          <div className="rounded-lg bg-subtle/80 p-3 space-y-2 text-[11px] text-fg-2 ring-1 ring-line">
+                            <div className="font-semibold text-fg">How to connect inside ChatGPT:</div>
+                            <ol className="list-decimal list-inside space-y-1 text-fg-3">
+                              <li>In ChatGPT, open <strong className="text-fg">Explore GPTs</strong> &rarr; <strong className="text-fg">Create a GPT</strong> (or developer tools).</li>
+                              <li>Select <strong className="text-fg">Actions / Connected Apps</strong> &rarr; <strong className="text-fg">Add MCP Server</strong>.</li>
+                              <li>Paste the MCP URL: <code className="text-ok font-mono">{mcpServerUrl}</code></li>
+                              <li>Authentication: Select <strong className="text-fg">Bearer Token</strong> and paste your Personal Access Key above (or choose <strong className="text-fg">None</strong> for Hackathon Demo Mode).</li>
+                              <li>Prompt test: <em className="text-fg">&quot;Use get_synthetic_wellness_demo or check_drug_safety to review my health data.&quot;</em></li>
+                            </ol>
+                          </div>
+                        </div>
+                      )}
+
+                      {configTab === "claude_remote" && (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-fg-3">Add to <code className="text-fg font-mono">claude_desktop_config.json</code>:</span>
+                            <button
+                              onClick={() => copyText(remoteMcpConfigSnippet, "config")}
+                              className="flex items-center gap-1 text-[11px] text-ok hover:underline font-medium"
+                            >
+                              {copiedConfig ? <Check size={12} /> : <Copy size={12} />}
+                              {copiedConfig ? "Copied" : "Copy Config JSON"}
+                            </button>
+                          </div>
+                          <pre className="rounded-xl bg-subtle p-3 font-mono text-[11px] text-fg-2 overflow-x-auto ring-1 ring-line">
+                            {remoteMcpConfigSnippet}
+                          </pre>
+                        </div>
+                      )}
+
+                      {configTab === "claude_local" && (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-fg-3">Local stdio CLI command:</span>
+                            <button
+                              onClick={() => copyText(claudeLocalSnippet, "config")}
+                              className="flex items-center gap-1 text-[11px] text-ok hover:underline font-medium"
+                            >
+                              {copiedConfig ? <Check size={12} /> : <Copy size={12} />}
+                              {copiedConfig ? "Copied" : "Copy Config JSON"}
+                            </button>
+                          </div>
+                          <pre className="rounded-xl bg-subtle p-3 font-mono text-[11px] text-fg-2 overflow-x-auto ring-1 ring-line">
+                            {claudeLocalSnippet}
+                          </pre>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

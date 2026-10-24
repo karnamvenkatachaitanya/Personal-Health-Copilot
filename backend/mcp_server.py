@@ -49,8 +49,11 @@ from app.services.mcp_service import (
 
 app = MCPServer("Personal Health Copilot")
 
+from contextvars import ContextVar
+
 # Global active caller context configured at startup or per-request
 _ACTIVE_TOKEN: Optional[str] = os.getenv("MCP_API_KEY")
+_REQUEST_TOKEN: ContextVar[Optional[str]] = ContextVar("_REQUEST_TOKEN", default=None)
 
 # Hackathon unauthenticated demo mode flag (defaults to false for production security)
 DEMO_MODE: bool = os.getenv("DEMO_MODE", "false").lower() in ("true", "1", "yes")
@@ -61,15 +64,19 @@ def set_active_token(token: Optional[str]) -> None:
     _ACTIVE_TOKEN = token
 
 
+def set_request_token(token: Optional[str]) -> None:
+    _REQUEST_TOKEN.set(token)
+
+
 def _token_given() -> bool:
     """A token was configured. If it does not resolve (wrong or revoked), every tool must refuse
     rather than fall back to the anonymous sample-family view."""
-    return bool((_ACTIVE_TOKEN or os.getenv("MCP_API_KEY") or "").strip())
+    return bool((_REQUEST_TOKEN.get() or _ACTIVE_TOKEN or os.getenv("MCP_API_KEY") or "").strip())
 
 
 def get_current_context() -> Optional[MCPCallerContext]:
     global _ACTIVE_TOKEN
-    token = _ACTIVE_TOKEN or os.getenv("MCP_API_KEY")
+    token = _REQUEST_TOKEN.get() or _ACTIVE_TOKEN or os.getenv("MCP_API_KEY")
     ctx = authenticate_caller(token)
     if ctx:
         return ctx
