@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { ArrowUpRight, DownloadSimple, FirstAid, IdentificationCard, Printer, UserMinus } from "@phosphor-icons/react";
+import { ArrowUpRight, DownloadSimple, FirstAid, IdentificationCard, Printer, Sparkle, UserMinus } from "@phosphor-icons/react";
 import { api } from "@/lib/api";
 import { ageLabel, relationLabel, useI18n } from "@/lib/i18n";
 import type { Profile } from "@/lib/types";
@@ -83,28 +83,111 @@ function AbhaForm({ profile, onDone }: { profile: Profile; onDone: (p: Profile |
   const [addr, setAddr] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [demoFilled, setDemoFilled] = useState(false);
   const f = "h-10 rounded-full border border-line bg-canvas px-4 text-[14px] text-fg placeholder:text-fg-3 focus:border-fg focus:outline-none";
+
+  const getDemoData = () => {
+    const raw = profile.name.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 20) || "patient";
+    const username = raw.length < 3 ? `${raw}123` : raw;
+    return {
+      number: "91-1234-5678-9012",
+      address: `${username}@abdm`,
+    };
+  };
+
+  const handleFillDemo = () => {
+    const demo = getDemoData();
+    setNum(demo.number);
+    setAddr(demo.address);
+    setErr(null);
+    setDemoFilled(true);
+    toast("Demo credentials filled into fields. Click Link ABHA to fetch records.");
+  };
+
   if (profile.abha_linked) {
     return (
-      <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line p-4 text-sm">
-        <span className="max-w-xl text-fg-2">{t.abhaHelp}</span>
-        <Button size="sm" variant="danger" loading={busy} onClick={async () => { setBusy(true); try { onDone(await api.unlinkAbha(profile.id)); } catch (e) { toast((e as Error).message, "error"); setBusy(false); } }}>{t.abhaUnlink}</Button>
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-line/10 p-4 text-sm">
+        <div>
+          <p className="font-semibold text-fg">
+            {t.abhaLinked}: <span className="font-mono text-ok">{profile.abha_number || profile.abha_address}</span>
+          </p>
+          <p className="mt-1 text-xs text-fg-3">
+            Unlinking will safely remove all ABDM-imported documents from the timeline while keeping your manual uploads intact.
+          </p>
+        </div>
+        <Button
+          size="sm"
+          variant="danger"
+          loading={busy}
+          onClick={async () => {
+            setBusy(true);
+            try {
+              const p = await api.unlinkAbha(profile.id);
+              toast("ABHA unlinked. ABDM records removed.");
+              onDone(p);
+            } catch (e) {
+              toast((e as Error).message, "error");
+              setBusy(false);
+            }
+          }}
+        >
+          {t.abhaUnlink}
+        </Button>
       </div>
     );
   }
   return (
-    <form className="mt-5 rounded-xl border border-line p-4" onSubmit={async (e) => {
-      e.preventDefault(); setBusy(true); setErr(null);
-      try { const p = await api.linkAbha(profile.id, { abha_number: num || undefined, abha_address: addr || undefined }); toast(t.abhaLinked); onDone(p); }
-      catch (x) { setErr((x as Error).message); setBusy(false); }
+    <form className="mt-5 rounded-xl border border-line bg-canvas/60 p-4 shadow-sm" onSubmit={async (e) => {
+      e.preventDefault();
+      setBusy(true);
+      setErr(null);
+      try {
+        const p = await api.linkAbha(profile.id, { abha_number: num || undefined, abha_address: addr || undefined });
+        toast("ABHA linked! Fetched ABDM records into health timeline.");
+        onDone(p);
+      } catch (x) {
+        setErr((x as Error).message);
+      } finally {
+        setBusy(false);
+      }
     }}>
-      <p className="max-w-xl text-sm text-fg-3">{t.abhaHelp}</p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="max-w-xl text-sm text-fg-3">{t.abhaHelp}</p>
+        <button
+          type="button"
+          onClick={handleFillDemo}
+          className="inline-flex items-center gap-1.5 rounded-full border border-accent/40 bg-accent-soft/30 px-3 py-1 text-xs font-semibold text-accent transition-colors hover:border-accent hover:bg-accent-soft cursor-pointer"
+        >
+          <Sparkle size={13} weight="fill" />
+          Auto-fill Demo Credentials
+        </button>
+      </div>
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        <input value={num} onChange={(e) => setNum(e.target.value)} placeholder="91-1234-5678-9012" inputMode="numeric" aria-label={t.abhaNumber} className={`${f} num w-56`} />
-        <input value={addr} onChange={(e) => setAddr(e.target.value)} placeholder="name@abdm" aria-label={t.abhaAddress} className={`${f} w-48`} />
-        <Button variant="primary" loading={busy} icon={<ArrowUpRight size={15} />}>{t.abhaLink}</Button>
+        <input
+          value={num}
+          onChange={(e) => { setNum(e.target.value); setDemoFilled(false); }}
+          placeholder="91-1234-5678-9012"
+          inputMode="numeric"
+          aria-label={t.abhaNumber}
+          className={`${f} num w-56`}
+        />
+        <input
+          value={addr}
+          onChange={(e) => { setAddr(e.target.value); setDemoFilled(false); }}
+          placeholder="name@abdm"
+          aria-label={t.abhaAddress}
+          className={`${f} w-48`}
+        />
+        <Button variant="primary" loading={busy} icon={<ArrowUpRight size={15} />}>
+          {busy ? "Connecting & Fetching Records..." : t.abhaLink}
+        </Button>
         <Button type="button" variant="ghost" onClick={() => onDone(null)}>{t.cancel}</Button>
       </div>
+      {demoFilled && (
+        <p className="mt-2 text-xs text-ok flex items-center gap-1">
+          ✓ Sample credentials populated. Click <strong>Link ABHA</strong> to fetch and sync clinical records.
+        </p>
+      )}
       {err && <p role="alert" className="mt-2 text-sm text-high">{err}</p>}
     </form>
   );

@@ -40,6 +40,11 @@ export function Timeline({ records, onOpen, limit }: { records: HealthRecord[]; 
                     </div>
                     <p className="mt-2 line-clamp-2 max-w-[75ch] text-sm leading-relaxed text-fg-2">{highlight(pick(e.summary, lang), [...e.lab_observations.filter((o) => isOut(o.flag)).flatMap((o) => termVariants(o.test_name)), ...e.diagnoses.map((d) => d.replace(/\s*\[.*\]/, ""))])}</p>
                     <div className="mt-3 flex flex-wrap gap-1.5">
+                      {(r.source_filename?.startsWith("ABHA:") || r.extraction?.engine === "abdm_gateway") && (
+                        <span className="inline-flex items-center gap-1 rounded bg-ok-soft px-2 py-0.5 text-[11px] font-semibold text-ok">
+                          ABHA Record
+                        </span>
+                      )}
                       {r.name_check === "mismatch" && <Badge tone="warn">{t.nameDiffers}</Badge>}
                       {e.diagnoses.slice(0, 3).map((d, i) => <Badge key={i} tone="accent">{d.replace(/\s*\[.*\]/, "")}</Badge>)}
                       {e.medications.length > 0 && <Badge>{t.medsCount(e.medications.length)}</Badge>}

@@ -1,9 +1,10 @@
 import re
+from datetime import date
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
 
 from app.schemas.payloads import ABHALinkRequest, Profile, ProfileCreate
-from app.services import store
+from app.services import care_store, store
 from app.services.auth import current_user_id
 from app.services.fhir_mapper import profile_collection
 from app.services.trends import Trend, build_trends
@@ -35,8 +36,8 @@ def delete_profile(profile_id: str, owner: str = Depends(current_user_id)):
 
 @router.post("/{profile_id}/abha", response_model=Profile)
 def link_abha(profile_id: str, body: ABHALinkRequest, owner: str = Depends(current_user_id)):
-    """Mock ABHA link. Validates the 14-digit ABHA number or ABHA address format only;
-    no request is made to the ABDM gateway."""
+    """Validates the ABHA credentials, links the profile, and fetches records from
+    the ABDM mock gateway catalog into the user's health timeline."""
     profile = store.get_profile(owner, profile_id)
     if not profile:
         raise HTTPException(404, "Profile not found")
@@ -55,21 +56,45 @@ def link_abha(profile_id: str, body: ABHALinkRequest, owner: str = Depends(curre
     profile.abha_address = address or profile.abha_address
     profile.abha_linked = True
     profile.abha_linked_at = store.now_iso()
+    saved = store.save_profile(owner, profile)
+
+    # Fetch and attach ABHA documents for this patient
+    store.fetch_and_link_abha_records(owner, saved, saved.abha_number or "", saved.abha_address or "")
+
+    # Sync care plan items from the new records
+    try:
+        care_store.sync(owner, saved.id, date.today())
+    except Exception:
+        pass
+
     store.audit(owner, "abha_link", profile.id)
-    return store.save_profile(owner, profile)
+    return saved
 
 
 @router.delete("/{profile_id}/abha", response_model=Profile)
 def unlink_abha(profile_id: str, owner: str = Depends(current_user_id)):
+    """Unlinks ABHA identity and removes all ABDM-fetched documents from the health timeline."""
     profile = store.get_profile(owner, profile_id)
     if not profile:
         raise HTTPException(404, "Profile not found")
+
+    # Clean up all records imported from the ABHA gateway
+    store.remove_abha_records(owner, profile.id)
+
     profile.abha_linked = False
     profile.abha_number = None
     profile.abha_address = None
     profile.abha_linked_at = None
+    saved = store.save_profile(owner, profile)
+
+    # Re-sync care plan items after removing ABHA records
+    try:
+        care_store.sync(owner, saved.id, date.today())
+    except Exception:
+        pass
+
     store.audit(owner, "abha_unlink", profile.id)
-    return store.save_profile(owner, profile)
+    return saved
 
 
 @router.get("/{profile_id}/fhir")

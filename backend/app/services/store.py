@@ -16,7 +16,7 @@ import httpx
 from supabase import Client, create_client
 
 from app.config import settings
-from app.schemas.payloads import HealthRecord, Profile
+from app.schemas.payloads import ExtractionMeta, HealthRecord, Profile
 from app.services.regex_cleaner import parse_number, parse_reference_range
 
 logger = logging.getLogger(__name__)
@@ -250,3 +250,59 @@ def load_sample_family(owner: str) -> int:
         save_record(owner, rec, storage_path=path, preview_path=preview)
     audit(owner, "load_sample_family")
     return len(seed["records"])
+
+
+def remove_abha_records(owner: str, profile_id: str) -> int:
+    """Removes records that were fetched via ABDM/ABHA link for this patient."""
+    recs = list_records(owner, profile_id)
+    abha_recs = [
+        r for r in recs
+        if (r.source_filename and r.source_filename.startswith("ABHA:"))
+        or (r.extraction and r.extraction.engine == "abdm_gateway")
+    ]
+    for r in abha_recs:
+        delete_record(owner, r.id)
+    if abha_recs:
+        audit(owner, "abha_records_removed", patient_id=profile_id, detail={"count": len(abha_recs)})
+    return len(abha_recs)
+
+
+def fetch_and_link_abha_records(owner: str, profile: Profile, abha_number: str, abha_address: str) -> int:
+    """Fetches ABDM records from the catalog for the linked ABHA identity and stores them in the DB."""
+    from app.seed.abha_catalog import generate_abha_records_for_profile
+    from app.services.fhir_mapper import to_fhir_bundle
+
+    # Clear previous ABHA records for this patient first to ensure fresh sync without duplicates
+    remove_abha_records(owner, profile.id)
+
+    items = generate_abha_records_for_profile(profile, abha_number, abha_address)
+    for it in items:
+        rid = new_id()
+        bundle = to_fhir_bundle(it["extracted"], profile, rid)
+        rec = HealthRecord(
+            id=rid,
+            profile_id=profile.id,
+            document_type=it["document_type"],
+            record_date=it["record_date"],
+            title=it["title"],
+            extracted=it["extracted"],
+            source_filename=it["source_filename"],
+            source_mime=it["source_mime"],
+            has_source_file=False,
+            has_preview=False,
+            name_check="match",
+            extraction=ExtractionMeta(
+                engine="abdm_gateway",
+                model="abdm-fhir-r4",
+                duration_ms=180,
+                warnings=[],
+            ),
+            fhir_bundle=bundle,
+            is_sample=False,
+            created_at=now_iso(),
+        )
+        save_record(owner, rec)
+
+    audit(owner, "abha_records_fetched", patient_id=profile.id, detail={"count": len(items), "abha_number": abha_number, "abha_address": abha_address})
+    return len(items)
+

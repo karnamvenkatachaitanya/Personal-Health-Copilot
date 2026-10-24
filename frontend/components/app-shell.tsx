@@ -121,7 +121,7 @@ export function AppShell({ email }: { email: string }) {
             <div>
             <PatientHeader profile={active} tab={tab} onTab={(x) => { setTab(x); setOpenRecord(null); setVisit(false); }}
               recordCount={records?.length} onUpload={() => { setUploadFile(null); setUploading(true); setOpenRecord(null); setVisit(false); }}
-              onProfile={(p) => setProfiles((ps) => (ps || []).map((x) => (x.id === p.id ? p : x)))}
+              onProfile={async (p) => { await loadAll(p.id); }}
               onVisit={() => { setVisit(true); setOpenRecord(null); setUploading(false); setTab("overview"); }}
               onEmergency={() => setEmergencyOpen(true)}
               onRemove={async () => {

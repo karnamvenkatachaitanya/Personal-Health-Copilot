@@ -14,8 +14,12 @@ from app.services import care_store, store
 from app.services.auth import current_user_id
 from app.services.care_plan import doses_for_day, risk_insights, visit_questions
 
+try:
+    from zoneinfo import ZoneInfo
+    IST = ZoneInfo("Asia/Kolkata")
+except Exception:
+    IST = timezone(timedelta(hours=5, minutes=30))
 router = APIRouter(tags=["Care plan"])
-IST = ZoneInfo("Asia/Kolkata")
 TIME = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
 
 

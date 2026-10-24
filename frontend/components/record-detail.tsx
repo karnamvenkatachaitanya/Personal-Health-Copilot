@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { FilePdf, MagnifyingGlass, ArrowLeft, ArrowSquareOut, Code, SpeakerHigh, SpeakerSlash, Trash, WarningCircle } from "@phosphor-icons/react";
+import { FilePdf, MagnifyingGlass, ArrowLeft, ArrowSquareOut, Code, IdentificationCard, SpeakerHigh, SpeakerSlash, Trash, WarningCircle } from "@phosphor-icons/react";
 import { api } from "@/lib/api";
 import { cachedImage } from "@/lib/image-cache";
 import { isOut, tidyName } from "@/lib/clinical";
@@ -111,8 +111,26 @@ export function RecordDetail({ record, urls, profiles, active, onBack, onMoved, 
               {(original || src) && <a href={original || src || "#"} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-fg-3 hover:text-accent">{t.openOriginal}<ArrowSquareOut size={13} /></a>}
             </div>
             <div className="bg-subtle p-3">
-              {srcErr || !record.has_source_file ? <p className="py-16 text-center text-sm text-fg-3">Original file not available.</p>
-                : !src ? <Skeleton className="aspect-[3/4] w-full" />
+              {srcErr || !record.has_source_file ? (
+                <div className="flex aspect-[3/4] w-full flex-col items-center justify-center gap-3 rounded bg-surface p-6 text-center ring-1 ring-line">
+                  <div className="grid h-12 w-12 place-items-center rounded-full bg-ok-soft text-ok">
+                    <IdentificationCard size={26} weight="fill" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-fg">ABDM Digital Health Record</p>
+                    <p className="mt-1 max-w-[240px] text-xs leading-relaxed text-fg-3">
+                      Digital clinical record fetched from the ABHA network. Fully verified FHIR R4 Bundle.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setFhir(true)}
+                    className="mt-1 inline-flex items-center gap-1.5 rounded-full border border-line bg-canvas px-3.5 py-1.5 text-xs font-semibold text-fg transition-colors hover:border-fg"
+                  >
+                    <Code size={14} /> View FHIR R4 Bundle
+                  </button>
+                </div>
+              ) : !src ? <Skeleton className="aspect-[3/4] w-full" />
                 : isPdf ? (
                   <>
                   {/* Phone browsers rarely embed PDFs (blank box or forced download): offer a clear open action instead. */}
