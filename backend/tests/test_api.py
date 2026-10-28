@@ -9,7 +9,8 @@ from app.services.auth import current_user_id
 client = TestClient(app)
 
 PROTECTED = [
-    ("get", "/api/v1/profiles"), ("post", "/api/v1/profiles"), ("get", "/api/v1/health-records"),
+    ("get", "/api/v1/profiles"), ("post", "/api/v1/profiles"), ("put", "/api/v1/profiles/x"),
+    ("get", "/api/v1/health-records"),
     ("get", "/api/v1/health-records/files"), ("post", "/api/v1/health-records/upload"),
     ("post", "/api/v1/copilot/query"), ("post", "/api/v1/voice/transcribe"),
     ("get", "/api/v1/voice/tts?text=hello&language=en"), ("get", "/api/v1/profiles/x/trends"),
@@ -89,3 +90,21 @@ def test_malformed_record_ids_are_404_not_500(signed_in, monkeypatch):
         raise APIError({"message": 'invalid input syntax for type uuid: "nope"', "code": "22P02", "hint": None, "details": None})
     monkeypatch.setattr(store, "get_record", bad_uuid)
     assert client.get("/api/v1/health-records/nope").status_code == 404
+
+
+def test_update_profile_modifies_details(signed_in, monkeypatch, profile):
+    monkeypatch.setattr(store, "get_profile", lambda owner, pid: profile)
+    saved_box = []
+    monkeypatch.setattr(store, "save_profile", lambda owner, p: (saved_box.append(p), p)[1])
+    monkeypatch.setattr(store, "audit", lambda *a, **k: None)
+
+    r = client.put(f"/api/v1/profiles/{profile.id}", json={"name": "Anita Sharma", "relation": "Mother", "age": "52", "sex": "F"})
+    assert r.status_code == 200
+    res = r.json()
+    assert res["name"] == "Anita Sharma"
+    assert res["relation"] == "Mother"
+    assert res["age"] == "52"
+    assert res["sex"] == "F"
+    assert len(saved_box) == 1
+    assert saved_box[0].name == "Anita Sharma"
+

@@ -21,6 +21,7 @@ import { CarePlanView } from "./care-plan";
 import { useDoseReminders } from "./use-dose-reminders";
 import { EmergencyIdModal } from "./emergency-id-modal";
 import { McpGovernanceModal } from "./mcp-governance-modal";
+import { ManageFamilyModal } from "./manage-family-modal";
 
 export type Tab = "overview" | "records" | "medicines" | "care" | "ask";
 const byDate = (a: HealthRecord, b: HealthRecord) => (b.record_date || "").localeCompare(a.record_date || "") || b.created_at.localeCompare(a.created_at);
@@ -45,6 +46,8 @@ export function AppShell({ email }: { email: string }) {
 
   const [justUploadedRecord, setJustUploadedRecord] = useState<HealthRecord | null>(null);
   const [askQuery, setAskQuery] = useState<string | null>(null);
+  const [manageFamilyOpen, setManageFamilyOpen] = useState(false);
+  const [editingProfileId, setEditingProfileId] = useState<string | null>(null);
 
   // Everything for the whole family in two parallel calls; switching people is then instant.
   const inflight = useRef(false);
@@ -101,6 +104,10 @@ export function AppShell({ email }: { email: string }) {
     setUploading(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
+  function openManageFamily(editId?: string) {
+    setEditingProfileId(editId || null);
+    setManageFamilyOpen(true);
+  }
   function upsert(rec: HealthRecord) {
     setAllRecords((rs) => [rec, ...(rs || []).filter((r) => r.id !== rec.id)].sort(byDate));
     refreshUrls();
@@ -110,7 +117,15 @@ export function AppShell({ email }: { email: string }) {
     <div className="min-h-[100dvh] flex flex-col justify-between">
       <div>
         <TopBar email={email} onOpenMcpGovernance={() => setMcpOpen(true)} />
-        {profiles?.length !== 0 && <FamilyRow profiles={profiles} activeId={activeId} onSelect={select} onProfilesChanged={loadProfiles} />}
+        {profiles?.length !== 0 && (
+          <FamilyRow
+            profiles={profiles}
+            activeId={activeId}
+            onSelect={select}
+            onProfilesChanged={loadProfiles}
+            onOpenManageFamily={() => openManageFamily()}
+          />
+        )}
         {!profiles && !loadError && <HeaderSkeleton />}
       </div>
       <main className="min-w-0 flex-1 flex flex-col">
@@ -124,6 +139,8 @@ export function AppShell({ email }: { email: string }) {
               onProfile={async (p) => { await loadAll(p.id); }}
               onVisit={() => { setVisit(true); setOpenRecord(null); setUploading(false); setTab("overview"); }}
               onEmergency={() => setEmergencyOpen(true)}
+              onEdit={() => openManageFamily(active.id)}
+              onManageFamily={() => openManageFamily()}
               onRemove={async () => {
                 if (!window.confirm(t.confirmRemove(active.name))) return;
                 try { await api.deleteProfile(active.id); toast(t.removed(active.name)); await loadAll(); } catch (e) { toast((e as Error).message, "error"); }
@@ -200,6 +217,15 @@ export function AppShell({ email }: { email: string }) {
                 onClose={() => setMcpOpen(false)}
               />
             )}
+            <ManageFamilyModal
+              isOpen={manageFamilyOpen}
+              onClose={() => { setManageFamilyOpen(false); setEditingProfileId(null); }}
+              profiles={profiles || []}
+              activeId={activeId}
+              onSelect={(id) => select(id)}
+              onProfilesChanged={async (selectId) => { await loadProfiles(selectId); }}
+              initialEditProfileId={editingProfileId}
+            />
           </>
         )}
       </main>

@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Plus, SignOut, Sparkle } from "@phosphor-icons/react";
+import { Plus, SignOut, Sparkle, UsersThree } from "@phosphor-icons/react";
 import { api } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
 import { relationLabel, useI18n } from "@/lib/i18n";
@@ -10,9 +10,10 @@ import { Logo } from "./logo";
 import { Avatar, Button, Skeleton, cx } from "./ui";
 import { CustomSelect } from "./custom-select";
 
-export function Sidebar({ email, profiles, activeId, onSelect, onProfilesChanged }: {
+export function Sidebar({ email, profiles, activeId, onSelect, onProfilesChanged, onOpenManageFamily }: {
   email: string; profiles: Profile[] | null; activeId: string | null;
   onSelect: (id: string) => void; onProfilesChanged: (select?: string) => void;
+  onOpenManageFamily?: () => void;
 }) {
   const { t, lang } = useI18n();
   const [adding, setAdding] = useState(false);
@@ -47,6 +48,11 @@ export function Sidebar({ email, profiles, activeId, onSelect, onProfilesChanged
           : <button onClick={() => setAdding(true)} className="mt-1 flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-[14px] text-fg-3 hover:bg-hover hover:text-fg">
               <span className="flex h-7 w-7 items-center justify-center rounded-full border border-dashed border-line-strong"><Plus size={13} /></span>{t.addMember}
             </button>}
+        {onOpenManageFamily && (
+          <button onClick={onOpenManageFamily} className="mt-1 flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-[14px] text-fg-3 hover:bg-hover hover:text-fg">
+            <span className="flex h-7 w-7 items-center justify-center rounded-full border border-line"><UsersThree size={14} /></span>{t.manageFamily}
+          </button>
+        )}
         {profiles && profiles.length > 0 && !profiles.some((p) => p.is_sample) && (
           <Button variant="ghost" size="sm" className="mt-2 w-full justify-start" loading={sampleBusy} icon={<Sparkle size={14} />}
             onClick={async () => { setSampleBusy(true); try { await api.loadSample(); } finally { setSampleBusy(false); onProfilesChanged(); } }}>{t.loadSample}</Button>
@@ -63,19 +69,29 @@ export function Sidebar({ email, profiles, activeId, onSelect, onProfilesChanged
   );
 }
 
-export function MemberForm({ initialName = "", initialAge = "", initialSex = "", initialRelation = "", hideCancel = false, onDone }: { initialName?: string; initialAge?: string; initialSex?: string; initialRelation?: string; hideCancel?: boolean; onDone: (p: Profile | null) => void }) {
+export function MemberForm({ profile, initialName = "", initialAge = "", initialSex = "", initialRelation = "", hideCancel = false, onDone }: { profile?: Profile | null; initialName?: string; initialAge?: string; initialSex?: string; initialRelation?: string; hideCancel?: boolean; onDone: (p: Profile | null) => void }) {
   const { t } = useI18n();
-  const [name, setName] = useState(initialName);
-  const [relation, setRelation] = useState(initialRelation);
-  const [age, setAge] = useState((initialAge || "").replace(/\D/g, "").slice(0, 3));
-  const [sex, setSex] = useState(["M", "F", "O"].includes((initialSex || "").toUpperCase()) ? initialSex.toUpperCase() : "");
+  const [name, setName] = useState(profile ? profile.name : initialName);
+  const [relation, setRelation] = useState(profile ? profile.relation : initialRelation);
+  const [age, setAge] = useState((profile?.age || initialAge || "").replace(/\D/g, "").slice(0, 3));
+  const rawSex = profile?.sex || initialSex || "";
+  const [sex, setSex] = useState(["M", "F", "O"].includes(rawSex.toUpperCase()) ? rawSex.toUpperCase() : "");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const f = "h-9 w-full rounded-lg border border-line bg-canvas px-3 text-sm text-fg placeholder:text-fg-3 focus:border-accent focus:shadow-focus focus:outline-none";
   return (
     <form className="space-y-2 p-2.5" onSubmit={async (e) => {
       e.preventDefault(); setBusy(true); setErr(null);
-      try { onDone(await api.createProfile({ name: name.trim(), relation: relation.trim() || "Family member", age: age || undefined, sex: sex || undefined })); }
+      try {
+        const payload = {
+          name: name.trim(),
+          relation: relation.trim() || "Family member",
+          age: age || undefined,
+          sex: sex || undefined,
+        };
+        const result = profile ? await api.updateProfile(profile.id, payload) : await api.createProfile(payload);
+        onDone(result);
+      }
       catch (x) { setErr((x as Error).message); setBusy(false); }
     }}>
       <input required autoFocus placeholder={t.name} value={name} onChange={(e) => setName(e.target.value)} className={f} />

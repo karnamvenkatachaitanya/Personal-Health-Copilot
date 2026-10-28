@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { Plus, Sparkle } from "@phosphor-icons/react";
+import { Plus, Sparkle, UsersThree } from "@phosphor-icons/react";
 import { api } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 import type { Profile } from "@/lib/types";
@@ -8,8 +8,8 @@ import { MemberForm } from "./sidebar";
 import { Avatar, Skeleton, cx } from "./ui";
 
 /** Who you are looking at, and everyone else one click away. Lives on the page, not in the app bar. */
-export function FamilyRow({ profiles, activeId, onSelect, onProfilesChanged }: {
-  profiles: Profile[] | null; activeId: string | null; onSelect: (id: string) => void; onProfilesChanged: (select?: string) => void;
+export function FamilyRow({ profiles, activeId, onSelect, onProfilesChanged, onOpenManageFamily }: {
+  profiles: Profile[] | null; activeId: string | null; onSelect: (id: string) => void; onProfilesChanged: (select?: string) => void; onOpenManageFamily?: () => void;
 }) {
   const { t } = useI18n();
   const [adding, setAdding] = useState(false);
@@ -34,11 +34,22 @@ export function FamilyRow({ profiles, activeId, onSelect, onProfilesChanged }: {
             </button>
           );
         })}
-        <div className="shrink-0">
+        <div className="shrink-0 flex items-center gap-1.5">
           <button onClick={() => setAdding((v) => !v)} aria-label={t.addMember} aria-expanded={adding}
             className="flex h-11 min-w-11 items-center justify-center gap-1.5 rounded-full border border-dashed border-line-strong px-3 text-sm text-fg-3 hover:border-fg hover:text-fg sm:h-9">
             <Plus size={13} weight="bold" /><span className="hidden sm:inline">{t.addMember}</span>
           </button>
+          {onOpenManageFamily && (
+            <button
+              onClick={onOpenManageFamily}
+              aria-label={t.manageFamily}
+              title={t.manageFamily}
+              className="flex h-11 min-w-11 items-center justify-center gap-1.5 rounded-full border border-line bg-surface/60 px-3 text-sm text-fg-2 hover:border-fg/40 hover:text-fg sm:h-9 transition-colors"
+            >
+              <UsersThree size={15} weight="duotone" />
+              <span className="hidden sm:inline">{t.manageFamily}</span>
+            </button>
+          )}
         </div>
       </nav>
       {adding && (

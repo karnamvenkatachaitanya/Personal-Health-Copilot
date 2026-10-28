@@ -54,3 +54,7 @@ backend/data/
 
 # Qoder / Antigravity local config & secrets
 .agents/
+
+# Local diagnostic scripts
+test_mcp_client.py
+

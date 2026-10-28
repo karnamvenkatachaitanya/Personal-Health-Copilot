@@ -1,14 +1,14 @@
 "use client";
 import { useState } from "react";
-import { ArrowUpRight, DownloadSimple, FirstAid, IdentificationCard, Printer, Sparkle, UserMinus } from "@phosphor-icons/react";
+import { ArrowUpRight, DownloadSimple, FirstAid, IdentificationCard, PencilSimple, Printer, Sparkle, UserMinus, UsersThree } from "@phosphor-icons/react";
 import { api } from "@/lib/api";
 import { ageLabel, relationLabel, useI18n } from "@/lib/i18n";
 import type { Profile } from "@/lib/types";
 import type { Tab } from "./app-shell";
 import { Badge, Button, cx, useToast } from "./ui";
 
-export function PatientHeader({ profile, tab, onTab, recordCount, onUpload, onProfile, findings, cta, onVisit, onEmergency, onRemove }: {
-  profile: Profile; tab: Tab; onTab: (t: Tab) => void; recordCount?: number; onUpload: () => void; onProfile: (p: Profile) => void; findings?: React.ReactNode; cta?: React.ReactNode; onVisit?: () => void; onEmergency?: () => void; onRemove?: () => void;
+export function PatientHeader({ profile, tab, onTab, recordCount, onUpload, onProfile, findings, cta, onVisit, onEmergency, onRemove, onEdit, onManageFamily }: {
+  profile: Profile; tab: Tab; onTab: (t: Tab) => void; recordCount?: number; onUpload: () => void; onProfile: (p: Profile) => void; findings?: React.ReactNode; cta?: React.ReactNode; onVisit?: () => void; onEmergency?: () => void; onRemove?: () => void; onEdit?: () => void; onManageFamily?: () => void;
 }) {
   const { t, lang } = useI18n();
   const toast = useToast();
@@ -28,9 +28,23 @@ export function PatientHeader({ profile, tab, onTab, recordCount, onUpload, onPr
               {relationLabel(profile.relation, lang)}{profile.age ? ` · ${ageLabel(profile.age, lang)}` : ""}{profile.sex ? ` · ${profile.sex}` : ""}
               {profile.is_sample && <Badge className="py-0 text-[11px]">{t.sample}</Badge>}
             </p>
-            <h1 className="display mt-1 truncate text-[28px] font-bold leading-tight sm:text-[36px]">{profile.name}</h1>
+            <div className="mt-1 flex items-center gap-3">
+              <h1 className="display truncate text-[28px] font-bold leading-tight sm:text-[36px]">{profile.name}</h1>
+              {onEdit && (
+                <button
+                  type="button"
+                  onClick={onEdit}
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-line text-fg-3 hover:border-fg hover:text-fg hover:bg-hover transition-colors"
+                  title={t.editMember}
+                  aria-label={t.editMember}
+                >
+                  <PencilSimple size={15} />
+                </button>
+              )}
+            </div>
             {/* Visit summary and Emergency ID first: they serve the caregiver at the clinic. Record-keeping actions follow. */}
             <div className="-mx-4 mt-3 flex items-center gap-2 overflow-x-auto px-4 pb-1 text-xs [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
+              {onEdit && <Button size="sm" variant="secondary" className={chip} icon={<PencilSimple size={14} aria-hidden />} onClick={onEdit}>{t.editMember}</Button>}
               {onVisit && <Button size="sm" className={chip} icon={<Printer size={14} aria-hidden />} onClick={onVisit}>{t.visitSummary}</Button>}
               {onEmergency && (
                 <button type="button" onClick={onEmergency}
@@ -55,6 +69,11 @@ export function PatientHeader({ profile, tab, onTab, recordCount, onUpload, onPr
                 try { await api.exportFhir(profile.id, profile.name); } catch (e) { toast((e as Error).message, "error"); }
                 setExporting(false);
               }}>{t.exportAbdm}</Button>
+              {onManageFamily && (
+                <Button size="sm" variant="ghost" className={chip} icon={<UsersThree size={15} aria-hidden />} onClick={onManageFamily}>
+                  {t.manageFamily}
+                </Button>
+              )}
               {onRemove && <Button size="sm" variant="ghost" className={cx(chip, "w-11 px-0 text-fg-3 hover:text-high sm:w-9")} icon={<UserMinus size={15} aria-hidden />} onClick={onRemove} aria-label={t.removeMember} title={t.removeMember} />}
             </div>
           </div>

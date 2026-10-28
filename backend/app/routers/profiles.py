@@ -3,7 +3,7 @@ from datetime import date
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
 
-from app.schemas.payloads import ABHALinkRequest, Profile, ProfileCreate
+from app.schemas.payloads import ABHALinkRequest, Profile, ProfileCreate, ProfileUpdate
 from app.services import care_store, store
 from app.services.auth import current_user_id
 from app.services.fhir_mapper import profile_collection
@@ -25,6 +25,28 @@ def create_profile(body: ProfileCreate, owner: str = Depends(current_user_id)):
     profile = Profile(id=store.new_id(), name=body.name.strip(), relation=body.relation.strip() or "Family member",
                       age=body.age, sex=body.sex, created_at=store.now_iso())
     return store.save_profile(owner, profile)
+
+
+@router.put("/{profile_id}", response_model=Profile)
+@router.patch("/{profile_id}", response_model=Profile)
+def update_profile(profile_id: str, body: ProfileUpdate, owner: str = Depends(current_user_id)):
+    profile = store.get_profile(owner, profile_id)
+    if not profile:
+        raise HTTPException(404, "Profile not found")
+    if body.name is not None:
+        name_clean = body.name.strip()
+        if not name_clean:
+            raise HTTPException(422, "Name cannot be empty")
+        profile.name = name_clean
+    if body.relation is not None:
+        profile.relation = body.relation.strip() or "Family member"
+    if body.age is not None:
+        profile.age = body.age.strip() or None
+    if body.sex is not None:
+        profile.sex = body.sex.strip().upper() or None
+    saved = store.save_profile(owner, profile)
+    store.audit(owner, "profile_update", profile.id)
+    return saved
 
 
 @router.delete("/{profile_id}", status_code=204)

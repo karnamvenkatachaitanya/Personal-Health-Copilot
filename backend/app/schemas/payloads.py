@@ -90,6 +90,13 @@ class ProfileCreate(BaseModel):
     sex: Optional[str] = None
 
 
+class ProfileUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=80)
+    relation: Optional[str] = Field(None, max_length=40)
+    age: Optional[str] = None
+    sex: Optional[str] = None
+
+
 class HealthRecord(BaseModel):
     id: str
     profile_id: str
