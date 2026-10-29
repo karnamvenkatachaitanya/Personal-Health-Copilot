@@ -170,11 +170,12 @@ def list_patient_profiles(*, mcp_ctx: Context = None) -> List[Dict[str, Any]]:
 
 
 @app.tool()
-def get_patient_summary(patient_name_or_id: str, *, mcp_ctx: Context = None) -> Dict[str, Any]:
+def get_patient_summary(patient_name_or_id: str = "self", *, mcp_ctx: Context = None) -> Dict[str, Any]:
     """Retrieves an executive medical summary for a patient.
 
     Args:
         patient_name_or_id: The patient's full name, first name, or UUID (e.g. 'Surya', 'Ravi Kumar', or 'Lakshmi Devi').
+                            Defaults to 'self' which seamlessly resolves to the authenticated profile.
 
     Returns:
         Demographics, diagnosed conditions, active medications count, recent lab results,
@@ -207,11 +208,11 @@ def get_patient_summary(patient_name_or_id: str, *, mcp_ctx: Context = None) -> 
 
 
 @app.tool()
-def get_prescribed_medications(patient_name_or_id: str, *, mcp_ctx: Context = None) -> List[Dict[str, Any]]:
+def get_prescribed_medications(patient_name_or_id: str = "self", *, mcp_ctx: Context = None) -> List[Dict[str, Any]]:
     """Retrieves all active prescribed medications, dosage schedules, food timing instructions, and duration for a patient.
 
     Args:
-        patient_name_or_id: Name or ID of the patient (e.g. 'Surya', 'Ravi Kumar', 'Lakshmi Devi').
+        patient_name_or_id: Name or ID of the patient (e.g. 'Surya', 'Ravi Kumar', 'Lakshmi Devi'). Defaults to 'self'.
 
     Returns:
         List of medications with form, dosage, frequency, food timing, multilingual instructions, and prescribing doctor.
@@ -243,11 +244,11 @@ def get_prescribed_medications(patient_name_or_id: str, *, mcp_ctx: Context = No
 
 
 @app.tool()
-def get_lab_reports(patient_name_or_id: str, test_name_filter: Optional[str] = None, *, mcp_ctx: Context = None) -> List[Dict[str, Any]]:
+def get_lab_reports(patient_name_or_id: str = "self", test_name_filter: Optional[str] = None, *, mcp_ctx: Context = None) -> List[Dict[str, Any]]:
     """Retrieves laboratory test observations and diagnostics for a patient with normal ranges and abnormal flags.
 
     Args:
-        patient_name_or_id: Name or ID of the patient (e.g. 'Surya', 'Ravi Kumar', 'Venkata Rao').
+        patient_name_or_id: Name or ID of the patient (e.g. 'Surya', 'Ravi Kumar', 'Venkata Rao'). Defaults to 'self'.
         test_name_filter: Optional substring filter (e.g., 'glucose', 'hba1c', 'creatinine', 'tsh', 'cholesterol').
 
     Returns:
@@ -281,11 +282,12 @@ def get_lab_reports(patient_name_or_id: str, test_name_filter: Optional[str] = N
 
 
 @app.tool()
-def check_drug_safety(medications: List[str], *, mcp_ctx: Context = None) -> Dict[str, Any]:
+def check_drug_safety(medications: Optional[List[str]] = None, *, mcp_ctx: Context = None) -> Dict[str, Any]:
     """Analyzes a list of medications for dangerous drug-drug interactions, food contraindications, and timing rules.
 
     Args:
-        medications: List of medication names (e.g. ['Paracetamol', 'Levocetirizine'] or ['Telmisartan', 'Ibuprofen']).
+        medications: Optional list of medication names (e.g. ['Paracetamol', 'Levocetirizine']).
+                     If omitted, automatically evaluates active prescriptions for the authenticated profile.
 
     Returns:
         Interaction warnings, food timing guidelines, duplication alerts, and critical safety precautions.
@@ -295,12 +297,25 @@ def check_drug_safety(medications: List[str], *, mcp_ctx: Context = None) -> Dic
     if not allowed:  # no key, wrong key, revoked key or disabled tool: refuse (DEMO_MODE gets its own context)
         return {"error": reason}
 
-    result = check_drug_safety_service(medications)
+    med_list = [m for m in (medications or []) if m]
+    if not med_list and ctx and ctx.owner_id:
+        target = ctx.profile_id or "self"
+        fetched = get_prescribed_medications_service(
+            target,
+            owner=ctx.owner_id,
+            allowed_patient_ids=ctx.allowed_patient_ids,
+        )
+        med_list = [m.get("name") for m in fetched if isinstance(m, dict) and m.get("name")]
+
+    if not med_list:
+        return {"warning": "No medications specified or currently prescribed for this profile.", "interactions": []}
+
+    result = check_drug_safety_service(med_list)
     if ctx:
         log_mcp_activity(
             owner_id=ctx.owner_id,
             tool_name="check_drug_safety",
-            arguments={"medications": medications},
+            arguments={"medications": med_list},
             status="SUCCESS",
             client_info=ctx.token_name,
         )
@@ -308,14 +323,14 @@ def check_drug_safety(medications: List[str], *, mcp_ctx: Context = None) -> Dic
 
 
 @app.tool()
-def ask_health_copilot(query: str, patient_name_or_id: Optional[str] = None, language: str = "en", *, mcp_ctx: Context = None) -> Dict[str, Any]:
+def ask_health_copilot(query: str, patient_name_or_id: Optional[str] = "self", language: str = "en", *, mcp_ctx: Context = None) -> Dict[str, Any]:
     """Answers patient clinical questions grounded strictly in their verified health records.
 
     Includes safety emergency screening (112 / 108 emergency detection) and document citations.
 
     Args:
         query: The health question (e.g. 'What medicines is Surya taking?', 'When should I take Paracetamol?', 'Explain my HbA1c result').
-        patient_name_or_id: Optional patient name or ID. If not provided, defaults to the first available patient.
+        patient_name_or_id: Optional patient name or ID. Defaults to 'self' (the authenticated patient profile).
         language: Response language: 'en' (English), 'hi' (Hindi), or 'te' (Telugu).
 
     Returns:
@@ -331,7 +346,7 @@ def ask_health_copilot(query: str, patient_name_or_id: Optional[str] = None, lan
 
     result = ask_health_copilot_service(
         query=query,
-        patient_name_or_id=patient_name_or_id,
+        patient_name_or_id=patient_name_or_id or "self",
         language=language,
         owner=owner,
         allowed_patient_ids=allowed_pids,

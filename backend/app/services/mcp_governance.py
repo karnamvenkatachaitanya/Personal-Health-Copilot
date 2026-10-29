@@ -56,6 +56,8 @@ class MCPCallerContext:
     is_active: bool
     enabled_tools: List[str] = field(default_factory=lambda: list(ALL_MCP_TOOLS))
     allowed_patient_ids: List[str] = field(default_factory=list)
+    profile_id: Optional[str] = None
+    profile_name: Optional[str] = None
 
 
 class GovernanceStoreError(RuntimeError):
@@ -102,29 +104,70 @@ def hash_token(raw_token: str) -> str:
 # ---------------------------------------------------------------------------
 
 def get_or_create_policy(owner_id: str) -> Dict[str, Any]:
-    """Retrieves the MCP governance policy for a specific user."""
+    """Retrieves the MCP governance policy for a specific user, syncing active profile keys."""
     with _LOCK:
         data = _load_store()
         policies = data.get("policies", {})
-        if owner_id in policies:
-            return policies[owner_id]
-        policies[owner_id] = {
-            "owner_id": owner_id,
-            "is_active": True,
-            "enabled_tools": list(ALL_MCP_TOOLS),
-            "allowed_patient_ids": [],
-            "created_at": store.now_iso(),
-            "updated_at": store.now_iso(),
-            "has_generated_key": False,
-            "masked_key": None,
-        }
-        data["policies"] = policies
-        _save_store(data)
-        return policies[owner_id]
+        if owner_id not in policies:
+            policies[owner_id] = {
+                "owner_id": owner_id,
+                "is_active": True,
+                "enabled_tools": list(ALL_MCP_TOOLS),
+                "allowed_patient_ids": [],
+                "created_at": store.now_iso(),
+                "updated_at": store.now_iso(),
+                "has_generated_key": False,
+                "masked_key": None,
+                "profile_keys": {},
+            }
+            data["policies"] = policies
+            _save_store(data)
+
+        policy = policies[owner_id]
+        profile_keys: Dict[str, Any] = {}
+        has_any_key = False
+        master_masked = policy.get("masked_key")
+        for k_h, k_info in data.get("keys", {}).items():
+            if k_info.get("owner_id") == owner_id and k_info.get("is_active"):
+                has_any_key = True
+                pid = k_info.get("profile_id")
+                if pid:
+                    profile_keys[pid] = {
+                        "masked_key": k_info.get("masked_key"),
+                        "label": k_info.get("label"),
+                        "created_at": k_info.get("created_at"),
+                        "profile_name": k_info.get("profile_name"),
+                        "profile_id": pid,
+                    }
+                else:
+                    master_masked = k_info.get("masked_key")
+
+        policy["profile_keys"] = profile_keys
+        policy["has_generated_key"] = has_any_key
+        if master_masked:
+            policy["masked_key"] = master_masked
+        return policy
 
 
-def generate_mcp_key(owner_id: str, label: str = "Claude Desktop / Cursor") -> Dict[str, Any]:
-    """Generates a new secure Personal MCP Access Token for the user and revokes prior keys."""
+def generate_mcp_key(
+    owner_id: str,
+    label: str = "Claude Desktop / Cursor",
+    profile_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Generates a secure Personal MCP Access Token.
+    If profile_id is provided, the handshake key is strictly scoped to that profile.
+    If profile_id is None, it acts as an account-level master key."""
+    profile_name: Optional[str] = None
+    if profile_id:
+        try:
+            p = store.get_profile(owner_id, profile_id)
+            if p:
+                profile_name = p.name
+                if label == "Claude Desktop / Cursor":
+                    label = f"{p.name} Handshake"
+        except Exception:
+            profile_name = profile_id
+
     raw_key = f"phc_mcp_{secrets.token_urlsafe(32)}"
     key_h = hash_token(raw_key)
     masked = f"{raw_key[:12]}...{raw_key[-4:]}"
@@ -133,32 +176,51 @@ def generate_mcp_key(owner_id: str, label: str = "Claude Desktop / Cursor") -> D
     get_or_create_policy(owner_id)
     with _mutate() as data:
         keys = data.setdefault("keys", {})
-        # Deactivate existing keys for this owner
+        # Deactivate previous active keys for this specific scope
         for k_h, k_info in keys.items():
-            if k_info.get("owner_id") == owner_id:
-                k_info["is_active"] = False
-                k_info["revoked_at"] = now
+            if k_info.get("owner_id") == owner_id and k_info.get("is_active"):
+                if profile_id and k_info.get("profile_id") == profile_id:
+                    k_info["is_active"] = False
+                    k_info["revoked_at"] = now
+                elif not profile_id and not k_info.get("profile_id"):
+                    k_info["is_active"] = False
+                    k_info["revoked_at"] = now
+
         keys[key_h] = {
             "owner_id": owner_id,
+            "profile_id": profile_id,
+            "profile_name": profile_name,
             "label": label[:60],
             "masked_key": masked,
             "is_active": True,
             "created_at": now,
         }
+
         policy = data.setdefault("policies", {})[owner_id]
         policy["is_active"] = True
         policy["has_generated_key"] = True
-        policy["masked_key"] = masked
-        policy["key_label"] = label[:60]
-        policy["key_created_at"] = now
+        profile_keys = policy.setdefault("profile_keys", {})
+        if profile_id:
+            profile_keys[profile_id] = {
+                "masked_key": masked,
+                "label": label[:60],
+                "created_at": now,
+                "profile_name": profile_name,
+                "profile_id": profile_id,
+            }
+        else:
+            policy["masked_key"] = masked
+            policy["key_label"] = label[:60]
+            policy["key_created_at"] = now
 
     # Log in system audit trail
     log_mcp_activity(
         owner_id=owner_id,
         tool_name="mcp_key_generated",
-        arguments={"label": label},
+        arguments={"label": label, "profile_id": profile_id, "profile_name": profile_name},
         status="SUCCESS",
         client_info="Web Portal",
+        patient_name=profile_name,
     )
 
     return {
@@ -166,36 +228,52 @@ def generate_mcp_key(owner_id: str, label: str = "Claude Desktop / Cursor") -> D
         "masked_key": masked,
         "created_at": now,
         "label": label,
+        "profile_id": profile_id,
+        "profile_name": profile_name,
         "instructions": "Copy this key now. For security reasons it will not be displayed again.",
     }
 
 
-def revoke_mcp_key(owner_id: str) -> Dict[str, Any]:
-    """Instantly revokes all active MCP keys and disables MCP access for this owner."""
+def revoke_mcp_key(owner_id: str, profile_id: Optional[str] = None) -> Dict[str, Any]:
+    """Revokes active MCP key(s). If profile_id is provided, revokes only that profile's key.
+    If profile_id is None, revokes all keys for this owner."""
     now = store.now_iso()
     revoked_count = 0
     with _mutate() as data:
         for k_h, k_info in data.setdefault("keys", {}).items():
             if k_info.get("owner_id") == owner_id and k_info.get("is_active"):
-                k_info["is_active"] = False
-                k_info["revoked_at"] = now
-                revoked_count += 1
+                if profile_id:
+                    if k_info.get("profile_id") == profile_id:
+                        k_info["is_active"] = False
+                        k_info["revoked_at"] = now
+                        revoked_count += 1
+                else:
+                    k_info["is_active"] = False
+                    k_info["revoked_at"] = now
+                    revoked_count += 1
+
         policies = data.setdefault("policies", {})
         if owner_id in policies:
-            policies[owner_id]["is_active"] = False
-            policies[owner_id]["has_generated_key"] = False
-            policies[owner_id]["masked_key"] = None
-            policies[owner_id]["updated_at"] = now
+            policy = policies[owner_id]
+            if profile_id:
+                if "profile_keys" in policy and profile_id in policy["profile_keys"]:
+                    del policy["profile_keys"][profile_id]
+            else:
+                policy["is_active"] = False
+                policy["has_generated_key"] = False
+                policy["masked_key"] = None
+                policy["profile_keys"] = {}
+            policy["updated_at"] = now
 
     log_mcp_activity(
         owner_id=owner_id,
         tool_name="mcp_key_revoked",
-        arguments={"revoked_count": revoked_count},
+        arguments={"revoked_count": revoked_count, "profile_id": profile_id},
         status="REVOKED",
         client_info="Web Portal",
     )
 
-    return {"status": "revoked", "revoked_count": revoked_count, "timestamp": now}
+    return {"status": "revoked", "revoked_count": revoked_count, "profile_id": profile_id, "timestamp": now}
 
 
 def update_governance_policy(
@@ -269,12 +347,22 @@ def authenticate_caller(token: Optional[str]) -> Optional[MCPCallerContext]:
     if not policy.get("is_active", True):
         return None
 
+    profile_id = key_info.get("profile_id")
+    profile_name = key_info.get("profile_name")
+
+    if profile_id:
+        allowed_pids = [profile_id]
+    else:
+        allowed_pids = policy.get("allowed_patient_ids", [])
+
     return MCPCallerContext(
         owner_id=owner_id,
         token_name=key_info.get("label", "MCP Token"),
         is_active=True,
         enabled_tools=policy.get("enabled_tools", list(ALL_MCP_TOOLS)),
-        allowed_patient_ids=policy.get("allowed_patient_ids", []),
+        allowed_patient_ids=allowed_pids,
+        profile_id=profile_id,
+        profile_name=profile_name,
     )
 
 

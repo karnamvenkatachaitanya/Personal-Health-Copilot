@@ -183,22 +183,31 @@ export const api = {
         masked_key: string | null;
         key_label?: string;
         key_created_at?: string;
+        profile_keys?: Record<string, {
+          masked_key: string;
+          label: string;
+          created_at: string;
+          profile_name?: string;
+          profile_id: string;
+        }>;
         enabled_tools: string[];
         allowed_patient_ids: string[];
       };
       available_tools: string[];
       owner_id: string;
     }>("/mcp/policy"),
-  generateMcpKey: (label = "Claude Desktop / Cursor") =>
+  generateMcpKey: (label = "Claude Desktop / Cursor", profile_id?: string) =>
     call<{
       raw_key: string;
       masked_key: string;
       created_at: string;
       label: string;
+      profile_id?: string;
+      profile_name?: string;
       instructions: string;
-    }>("/mcp/generate-key", json({ label }), 15000),
-  revokeMcpKey: () =>
-    call<{ status: string; revoked_count: number; timestamp: string }>("/mcp/revoke-key", { method: "POST" }, 15000),
+    }>("/mcp/generate-key", json({ label, profile_id }), 15000),
+  revokeMcpKey: (profile_id?: string) =>
+    call<{ status: string; revoked_count: number; timestamp: string }>("/mcp/revoke-key", json({ profile_id }), 15000),
   updateMcpPolicy: (body: { is_active?: boolean; enabled_tools?: string[]; allowed_patient_ids?: string[] }) =>
     call<{ status: string; policy: any }>("/mcp/policy", { method: "PUT", body: JSON.stringify(body), headers: { "Content-Type": "application/json" } }, 15000),
   mcpAuditLogs: (limit = 30) =>

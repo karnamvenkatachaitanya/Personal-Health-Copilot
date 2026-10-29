@@ -28,6 +28,11 @@ class UpdatePolicyRequest(BaseModel):
 
 class GenerateKeyRequest(BaseModel):
     label: str = Field("Claude Desktop / Cursor", description="Name for the access key")
+    profile_id: Optional[str] = Field(None, description="Family profile ID to scope handshake key to")
+
+
+class RevokeKeyRequest(BaseModel):
+    profile_id: Optional[str] = Field(None, description="Family profile ID to revoke key for, or None for all")
 
 
 @router.get("/policy", summary="Get MCP Governance Policy")
@@ -46,16 +51,21 @@ def generate_key(
     body: Optional[GenerateKeyRequest] = None,
     owner: str = Depends(current_user_id),
 ) -> Dict[str, Any]:
-    """Generates a new secure access key for Claude Desktop / Cursor and revokes previous keys."""
-    label = body.label if body else "Claude Desktop / Cursor"
-    result = generate_mcp_key(owner_id=owner, label=label)
+    """Generates a new secure access key for Claude Desktop / Cursor / ChatGPT and binds to profile if specified."""
+    label = body.label if body and body.label else "Claude Desktop / Cursor"
+    profile_id = body.profile_id if body else None
+    result = generate_mcp_key(owner_id=owner, label=label, profile_id=profile_id)
     return result
 
 
 @router.post("/revoke-key", summary="Revoke MCP Access Key")
-def revoke_key(owner: str = Depends(current_user_id)) -> Dict[str, Any]:
-    """Instantly revokes all active MCP keys and disables tool access."""
-    return revoke_mcp_key(owner_id=owner)
+def revoke_key(
+    body: Optional[RevokeKeyRequest] = None,
+    owner: str = Depends(current_user_id),
+) -> Dict[str, Any]:
+    """Instantly revokes MCP keys for the specified profile (or all active keys if profile_id not passed)."""
+    profile_id = body.profile_id if body else None
+    return revoke_mcp_key(owner_id=owner, profile_id=profile_id)
 
 
 @router.put("/policy", summary="Update MCP Tool Permissions & Privacy Filters")

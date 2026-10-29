@@ -76,7 +76,11 @@ def family(monkeypatch):
         {"id": "p-ramesh", "name": "Ramesh Kumar", "source": "database"},
         {"id": "p-lak", "name": "Lakshmi Devi", "source": "database"},
     ]
-    monkeypatch.setattr(mcp_service, "fetch_all_patients", lambda owner=None, allowed_patient_ids=None: people)
+    def _fake_fetch(owner=None, allowed_patient_ids=None):
+        if allowed_patient_ids:
+            return [p for p in people if p["id"] in allowed_patient_ids]
+        return people
+    monkeypatch.setattr(mcp_service, "fetch_all_patients", _fake_fetch)
     return people
 
 
@@ -150,7 +154,8 @@ def test_store_is_private_and_a_corrupt_file_is_never_overwritten(governance):
     import os, stat
     key = governance.generate_mcp_key("owner-1")["raw_key"]
     mode = stat.S_IMODE(os.stat(governance.GOVERNANCE_FILE).st_mode)
-    assert mode == 0o600
+    if os.name != "nt":
+        assert mode == 0o600
     assert governance.authenticate_caller(key).owner_id == "owner-1"
     governance.GOVERNANCE_FILE.write_text("{ not json")
     with pytest.raises(governance.GovernanceStoreError):
@@ -195,3 +200,36 @@ def test_token_routes_are_rate_limited(governance, monkeypatch):
 ])
 def test_interactions_named_in_the_investigation_report(meds, title):
     assert title in titles(mcp_service.check_drug_safety_service(meds))
+
+
+def test_per_profile_mcp_keys_isolated_and_dynamic(governance, family):
+    # 1. Generate key for Profile A (Ram)
+    res_a = governance.generate_mcp_key("owner-1", label="Ram Handshake", profile_id="p-ram")
+    key_a = res_a["raw_key"]
+    assert res_a["profile_id"] == "p-ram"
+
+    # 2. Generate key for Profile B (Lakshmi)
+    res_b = governance.generate_mcp_key("owner-1", label="Lakshmi Handshake", profile_id="p-lak")
+    key_b = res_b["raw_key"]
+    assert res_b["profile_id"] == "p-lak"
+
+    # 3. Both keys should be active simultaneously
+    ctx_a = governance.authenticate_caller(key_a)
+    assert ctx_a.profile_id == "p-ram"
+    assert ctx_a.allowed_patient_ids == ["p-ram"]
+
+    ctx_b = governance.authenticate_caller(key_b)
+    assert ctx_b.profile_id == "p-lak"
+    assert ctx_b.allowed_patient_ids == ["p-lak"]
+
+    # 4. Dynamic scoping: generic 'self' or empty queries resolve dynamically to the key's bound profile
+    pat_a = mcp_service.resolve_patient("self", owner="u1", allowed_patient_ids=ctx_a.allowed_patient_ids)
+    assert pat_a["id"] == "p-ram"
+
+    pat_b = mcp_service.resolve_patient("self", owner="u1", allowed_patient_ids=ctx_b.allowed_patient_ids)
+    assert pat_b["id"] == "p-lak"
+
+    # 5. Revoking key A does not revoke key B
+    governance.revoke_mcp_key("owner-1", profile_id="p-ram")
+    assert governance.authenticate_caller(key_a) is None
+    assert governance.authenticate_caller(key_b).profile_id == "p-lak"

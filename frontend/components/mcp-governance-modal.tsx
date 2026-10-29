@@ -8,6 +8,8 @@ import {
   Lock,
   ShieldCheck,
   Sparkle,
+  User,
+  Users,
   WarningCircle,
   X,
 } from "@phosphor-icons/react";
@@ -67,12 +69,20 @@ export function McpGovernanceModal({ email, profiles, onClose }: McpGovernanceMo
   const [saving, setSaving] = useState(false);
   const [policyData, setPolicyData] = useState<any>(null);
   const [rawGeneratedKey, setRawGeneratedKey] = useState<string | null>(null);
+  const [selectedProfileId, setSelectedProfileId] = useState<string>(profiles[0]?.id || "");
+  const [generatedKeysByProfile, setGeneratedKeysByProfile] = useState<Record<string, string>>({});
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [copiedKey, setCopiedKey] = useState(false);
   const [copiedConfig, setCopiedConfig] = useState(false);
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [activeTab, setActiveTab] = useState<"keys" | "tools" | "privacy" | "audit">("keys");
   const [configTab, setConfigTab] = useState<"chatgpt" | "claude_remote" | "claude_local">("chatgpt");
+
+  useEffect(() => {
+    if (!selectedProfileId && profiles.length > 0) {
+      setSelectedProfileId(profiles[0].id);
+    }
+  }, [profiles, selectedProfileId]);
 
   // Load policy and audit logs
   useEffect(() => {
@@ -176,53 +186,55 @@ export function McpGovernanceModal({ email, profiles, onClose }: McpGovernanceMo
     }
   }
 
-  async function handleGenerateKey() {
+  async function handleGenerateKey(profileId?: string) {
+    const targetPid = profileId !== undefined ? profileId : selectedProfileId;
+    const targetProfile = profiles.find((p) => p.id === targetPid);
+    const label = targetProfile ? `${targetProfile.name} Handshake` : "Claude Desktop / Cursor";
     try {
       setSaving(true);
-      const res = await api.generateMcpKey("Claude Desktop / Cursor");
-      setRawGeneratedKey(res.raw_key);
+      const res = await api.generateMcpKey(label, targetPid || undefined);
+      if (targetPid) {
+        setGeneratedKeysByProfile((prev) => ({ ...prev, [targetPid]: res.raw_key }));
+      } else {
+        setRawGeneratedKey(res.raw_key);
+      }
       // Re-fetch the full policy so owner_id and all fields are populated
       const freshPolicy = await api.mcpPolicy().catch(() => null);
       if (freshPolicy) {
         setPolicyData(freshPolicy);
-      } else {
-        setPolicyData((prev: any) => ({
-          ...(prev || {}),
-          policy: {
-            ...(prev?.policy || {}),
-            is_active: true,
-            has_generated_key: true,
-            masked_key: res.masked_key,
-            key_created_at: res.created_at,
-          },
-        }));
       }
-      toast("New Personal MCP Access Key generated!", "ok");
+      toast(`New MCP handshake key generated for ${targetProfile ? targetProfile.name : "account"}!`, "ok");
     } catch {
-      toast("Failed to generate key.", "error");
+      toast("Failed to generate handshake key.", "error");
     } finally {
       setSaving(false);
     }
   }
 
-  async function handleRevokeKey() {
-    if (!confirm("Are you sure you want to revoke your MCP key? All connected tools (Claude Desktop, Cursor) will immediately lose access.")) {
+  async function handleRevokeKey(profileId?: string) {
+    const targetPid = profileId !== undefined ? profileId : selectedProfileId;
+    const targetProfile = profiles.find((p) => p.id === targetPid);
+    const displayName = targetProfile ? targetProfile.name : "all profiles";
+    if (!confirm(`Are you sure you want to revoke the MCP handshake key for ${displayName}? Connected AI tools using this key will immediately lose access.`)) {
       return;
     }
     try {
       setSaving(true);
-      await api.revokeMcpKey();
-      setRawGeneratedKey(null);
-      setPolicyData((prev: any) => ({
-        ...prev,
-        policy: {
-          ...prev.policy,
-          is_active: false,
-          has_generated_key: false,
-          masked_key: null,
-        },
-      }));
-      toast("MCP Access Key successfully revoked.", "ok");
+      await api.revokeMcpKey(targetPid || undefined);
+      if (targetPid) {
+        setGeneratedKeysByProfile((prev) => {
+          const next = { ...prev };
+          delete next[targetPid];
+          return next;
+        });
+      } else {
+        setRawGeneratedKey(null);
+      }
+      const freshPolicy = await api.mcpPolicy().catch(() => null);
+      if (freshPolicy) {
+        setPolicyData(freshPolicy);
+      }
+      toast(`MCP handshake key revoked for ${displayName}.`, "ok");
     } catch {
       toast("Failed to revoke key.", "error");
     } finally {
@@ -230,7 +242,18 @@ export function McpGovernanceModal({ email, profiles, onClose }: McpGovernanceMo
     }
   }
 
-  const activeKeyStr = rawGeneratedKey || policyData?.policy?.masked_key || "<YOUR_MCP_KEY>";
+  const selectedProfile = profiles.find((p) => p.id === selectedProfileId);
+  const profileKeyInfo = selectedProfileId ? policyData?.policy?.profile_keys?.[selectedProfileId] : null;
+  const currentRawKey = selectedProfileId ? generatedKeysByProfile[selectedProfileId] : rawGeneratedKey;
+  const currentMaskedKey = profileKeyInfo?.masked_key || (!selectedProfileId ? policyData?.policy?.masked_key : null);
+  const hasActiveKey = Boolean(currentRawKey || currentMaskedKey);
+  const activeKeyStr = currentRawKey || currentMaskedKey || "<YOUR_MCP_KEY>";
+
+  const profileSlug = selectedProfile
+    ? selectedProfile.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
+    : "family";
+  const serverIdentifier = selectedProfile ? `personal-health-copilot-${profileSlug}` : "personal-health-copilot";
+
   const mcpServerUrl = typeof window !== "undefined" && window.location.origin.includes("mycopilot.qd.je")
     ? "https://mycopilot.qd.je/mcp"
     : "https://mycopilot.qd.je/mcp";
@@ -238,7 +261,7 @@ export function McpGovernanceModal({ email, profiles, onClose }: McpGovernanceMo
   const remoteMcpConfigSnippet = JSON.stringify(
     {
       mcpServers: {
-        "personal-health-copilot": {
+        [serverIdentifier]: {
           url: mcpServerUrl,
           headers: {
             Authorization: `Bearer ${activeKeyStr}`,
@@ -253,7 +276,7 @@ export function McpGovernanceModal({ email, profiles, onClose }: McpGovernanceMo
   const claudeLocalSnippet = JSON.stringify(
     {
       mcpServers: {
-        "personal-health-copilot": {
+        [serverIdentifier]: {
           command: "python",
           args: ["backend/mcp_server.py", "--api-key", activeKeyStr],
         },
@@ -394,44 +417,115 @@ export function McpGovernanceModal({ email, profiles, onClose }: McpGovernanceMo
                     </button>
                   </div>
 
-                  {/* Active Key Display or Generate Key */}
-                  <div className="rounded-2xl border border-line bg-canvas/50 p-5 space-y-4">
+                  {/* Family Member Handshake Selector */}
+                  <div className="space-y-2.5">
                     <div className="flex items-center justify-between">
+                      <div className="text-xs font-semibold text-fg flex items-center gap-1.5">
+                        <Users size={16} className="text-ok" />
+                        <span>Select Profile for AI Handshake:</span>
+                      </div>
+                      <span className="text-[11px] text-fg-3">Each member carries a dedicated dynamic key</span>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      {profiles.map((p) => {
+                        const isSel = selectedProfileId === p.id;
+                        const hasKey = Boolean(
+                          generatedKeysByProfile[p.id] || policyData?.policy?.profile_keys?.[p.id]
+                        );
+                        return (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedProfileId(p.id);
+                            }}
+                            className={cx(
+                              "flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium transition-all ring-1",
+                              isSel
+                                ? "bg-accent text-accent-fg ring-accent shadow-sm font-semibold"
+                                : "bg-canvas text-fg-2 ring-line hover:bg-hover hover:text-fg"
+                            )}
+                          >
+                            <div
+                              className={cx(
+                                "grid h-5 w-5 place-items-center rounded-full text-[10px] font-bold",
+                                isSel ? "bg-accent-fg/20 text-accent-fg" : "bg-subtle text-fg"
+                              )}
+                            >
+                              {p.name.charAt(0).toUpperCase()}
+                            </div>
+                            <span>{p.name}</span>
+                            <span
+                              className={cx(
+                                "text-[10px] rounded-full px-1.5 py-0.2",
+                                isSel ? "bg-accent-fg/20 text-accent-fg" : "bg-subtle text-fg-3"
+                              )}
+                            >
+                              {p.relation || "Self"}
+                            </span>
+                            {hasKey && (
+                              <span
+                                className="h-2 w-2 rounded-full bg-ok shadow-sm"
+                                title="Active Handshake Key Configured"
+                              />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Active Key Display or Generate Key for Selected Profile */}
+                  <div className="rounded-2xl border border-line bg-canvas/50 p-5 space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
                       <div>
-                        <h3 className="text-sm font-semibold text-fg">Personal MCP Access Key (PAT)</h3>
-                        <p className="text-xs text-fg-3">
-                          This token uniquely tells the MCP server that <strong>YOU</strong> are using it, scoping all queries strictly to your family records.
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-sm font-semibold text-fg">
+                            {selectedProfile ? `${selectedProfile.name}'s MCP Handshake Key` : "Personal MCP Access Key"}
+                          </h3>
+                          {selectedProfile && (
+                            <span className="rounded-full bg-ok-soft px-2 py-0.5 text-[10px] font-medium text-ok ring-1 ring-ok/25">
+                              {selectedProfile.relation || "Self"} • Dynamic Scoping
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-fg-3 mt-0.5">
+                          {selectedProfile
+                            ? `When Claude Desktop, Cursor or ChatGPT uses this key, all queries dynamically resolve to ${selectedProfile.name}'s verified health records.`
+                            : "This token uniquely identifies your session, scoping MCP queries to your family records."}
                         </p>
                       </div>
-                      {policy?.has_generated_key && (
+
+                      {hasActiveKey && (
                         <button
-                          onClick={handleRevokeKey}
+                          onClick={() => handleRevokeKey(selectedProfileId)}
                           disabled={saving}
                           className="rounded-xl border border-high/30 bg-high-soft px-3 py-1.5 text-xs font-medium text-high hover:bg-high-soft transition-colors"
                         >
-                          Revoke Access Key
+                          Revoke Key
                         </button>
                       )}
                     </div>
 
-                    {rawGeneratedKey ? (
+                    {currentRawKey ? (
                       <div className="rounded-xl border border-ok/30 bg-ok-soft p-4 space-y-2">
                         <div className="flex items-center gap-2 text-xs font-semibold text-ok">
                           <CheckCircle size={16} />
-                          New Access Key Generated Successfully!
+                          New Handshake Key for {selectedProfile?.name || "Profile"} Generated!
                         </div>
                         <p className="text-xs text-fg-2">
-                          Copy this key now. For your security, this raw key will not be displayed again.
+                          Copy this key now. For your security, this full token will not be displayed again.
                         </p>
                         <div className="flex items-center gap-2">
                           <input
                             type="text"
                             readOnly
-                            value={rawGeneratedKey}
+                            value={currentRawKey}
                             className="flex-1 rounded-lg bg-subtle px-3 py-2 font-mono text-xs text-fg ring-1 ring-line select-all"
                           />
                           <button
-                            onClick={() => copyText(rawGeneratedKey, "key")}
+                            onClick={() => copyText(currentRawKey, "key")}
                             className="flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-accent-fg hover:opacity-85 transition-colors"
                           >
                             {copiedKey ? <Check size={14} /> : <Copy size={14} />}
@@ -439,16 +533,19 @@ export function McpGovernanceModal({ email, profiles, onClose }: McpGovernanceMo
                           </button>
                         </div>
                       </div>
-                    ) : policy?.has_generated_key ? (
+                    ) : hasActiveKey ? (
                       <div className="flex items-center justify-between rounded-xl bg-subtle px-4 py-3 ring-1 ring-line">
                         <div className="space-y-0.5">
-                          <div className="font-mono text-xs text-fg">{policy.masked_key}</div>
-                          <div className="text-[10px] text-fg-3">Created: {new Date(policy.key_created_at || Date.now()).toLocaleDateString()}</div>
+                          <div className="font-mono text-xs text-fg">{currentMaskedKey}</div>
+                          <div className="text-[10px] text-fg-3">
+                            Profile: <strong className="text-fg-2">{selectedProfile?.name}</strong> • Created:{" "}
+                            {new Date(profileKeyInfo?.created_at || policy?.key_created_at || Date.now()).toLocaleDateString()}
+                          </div>
                         </div>
                         <button
-                          onClick={handleGenerateKey}
+                          onClick={() => handleGenerateKey(selectedProfileId)}
                           disabled={saving}
-                          className="text-xs text-ok hover:text-ok underline"
+                          className="text-xs text-ok hover:text-ok underline font-medium"
                         >
                           Regenerate Key
                         </button>
@@ -459,18 +556,20 @@ export function McpGovernanceModal({ email, profiles, onClose }: McpGovernanceMo
                           <Key size={20} />
                         </div>
                         <div>
-                          <p className="text-xs font-medium text-fg-2">No active MCP key for this account</p>
+                          <p className="text-xs font-medium text-fg-2">
+                            No handshake key generated yet for {selectedProfile?.name || "this profile"}
+                          </p>
                           <p className="text-[11px] text-fg-3 max-w-sm mx-auto mt-0.5">
-                            Generate a token to allow Claude Desktop or Cursor IDE to securely query your family records.
+                            Generate a dedicated token so Claude Desktop, Cursor or ChatGPT can seamlessly query {selectedProfile?.name || "their"}&apos;s medical records.
                           </p>
                         </div>
                         <button
-                          onClick={handleGenerateKey}
+                          onClick={() => handleGenerateKey(selectedProfileId)}
                           disabled={saving}
                           className="inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2 text-xs font-semibold text-accent-fg transition-opacity hover:opacity-85"
                         >
                           <Key size={14} />
-                          Generate Personal MCP Key
+                          Generate Key for {selectedProfile?.name || "Profile"}
                         </button>
                       </div>
                     )}
@@ -590,6 +689,17 @@ export function McpGovernanceModal({ email, profiles, onClose }: McpGovernanceMo
                           </pre>
                         </div>
                       )}
+
+                      {/* Family Multi-Profile Tip */}
+                      <div className="rounded-xl border border-ok/25 bg-ok-soft p-3 text-[11px] text-fg-2 space-y-1">
+                        <div className="flex items-center gap-1.5 font-semibold text-ok">
+                          <Users size={14} />
+                          <span>Multi-Profile Handshake Tip</span>
+                        </div>
+                        <p className="text-fg-3 leading-relaxed">
+                          Each family member has their own dedicated handshake key. In <code className="font-mono text-fg-2">claude_desktop_config.json</code>, you can define multiple servers (e.g. <code className="font-mono text-ok">{serverIdentifier}</code>) with each person&apos;s unique key. Claude Desktop and Cursor will let you query each family member separately with dynamic, accurate records.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>

@@ -90,26 +90,45 @@ def resolve_patient(
     owner: Optional[str] = None,
     allowed_patient_ids: Optional[List[str]] = None,
 ) -> Optional[Dict[str, Any]]:
-    """Finds one patient by id or name within the owner's scope. Exact id or name wins; otherwise
-    the name words must match exactly one patient. An ambiguous or empty identifier matches nobody,
-    because answering about the wrong family member is worse than asking again."""
+    """Finds one patient by id or name within the owner's scope.
+    If the key is scoped to a single family profile, generic aliases like 'self', 'me', 'my'
+    or empty values dynamically and seamlessly resolve to that profile."""
     clean = (identifier or "").strip().lower()
-    if not clean:
-        return None
     patients = fetch_all_patients(owner=owner, allowed_patient_ids=allowed_patient_ids)
+    if not patients:
+        return None
+
+    # Common AI / patient aliases when interacting with personal assistant
+    if not clean:
+        return patients[0] if (len(patients) == 1 or allowed_patient_ids) else None
+
+    # Common AI / patient aliases when interacting with personal assistant
+    if clean in ("self", "me", "my", "patient", "current", "active", "default", "profile", "user"):
+        if len(patients) == 1 or allowed_patient_ids:
+            return patients[0]
+        for p in patients:
+            if p.get("relation", "").lower() == "self":
+                return p
+        return None
+
     for p in patients:
         if p["id"].lower() == clean or p["name"].lower() == clean:
             return p
     words = [w for w in re.findall(r"[^\W\d_]+", clean) if len(w) > 1]
     if not words:
-        return None
+        return patients[0] if (len(patients) == 1 or allowed_patient_ids) else None
 
     def matches(p: Dict[str, Any]) -> bool:
         name_words = re.findall(r"[^\W\d_]+", p["name"].lower())
         return all(any(n == w or n.startswith(w) for n in name_words) for w in words)
 
     hits = [p for p in patients if matches(p)]
-    return hits[0] if len(hits) == 1 else None
+    if len(hits) == 1:
+        return hits[0]
+    # If the handshake key is strictly scoped to one patient, default to that patient
+    if len(patients) == 1 and allowed_patient_ids:
+        return patients[0]
+    return None
 
 
 def fetch_records_for_patient(
